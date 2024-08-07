@@ -19,4 +19,10 @@ __pycache__/
 #symlinks
 *symlink*
 
+# test notebooks
+*test*.ipynb
+
+# obsolete
+obsolete/*
+
 
