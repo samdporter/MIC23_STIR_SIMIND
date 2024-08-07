@@ -1,0 +1,37 @@
+!INTERFILE  :=
+!imaging modality := nucmed
+!version of keys := 3.3
+name of data file := SPECTCT_NEMA_128_SC1001_DS.s
+data offset in bytes := 0
+
+!GENERAL IMAGE DATA :=
+!type of data := Tomographic
+imagedata byte order := LITTLEENDIAN
+!number format := float
+!number of bytes per pixel := 4
+calibration factor:= -1
+
+number of energy windows :=1
+energy window lower level[1] := 176.54
+energy window upper level[1] := 187.46
+!SPECT STUDY (General) :=
+number of dimensions := 2
+matrix axis label [2] := axial coordinate
+!matrix size [2] := 128
+!scaling factor (mm/pixel) [2] := 4.41974
+matrix axis label [1] := bin coordinate
+!matrix size [1] := 128
+!scaling factor (mm/pixel) [1] := 4.41974
+!number of projections := 120
+number of time frames := 1
+!image duration (sec)[1] := 5160
+!extent of rotation := 360
+!process status := acquired
+
+!SPECT STUDY (acquired data) :=
+!direction of rotation := CW
+start angle := 180.04
+orbit := circular
+radius := 191.125 
+
+!END OF INTERFILE :=
