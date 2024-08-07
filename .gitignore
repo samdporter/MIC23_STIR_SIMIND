@@ -16,4 +16,7 @@
 # pycache
 __pycache__/
 
+#symlinks
+*.symlink
+
 
