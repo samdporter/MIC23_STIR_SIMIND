@@ -190,7 +190,7 @@ ax_line.set_xlim(0, 128)
 
 # Adjust spacing and layout
 plt.tight_layout()
-plt.savefig(os=path.join(args.output, f"{args.output_filename}_axial.png"))
+plt.savefig(os.path.join(args.output, f"{args.output_filename}_axial.png"))
 
 # In[62]:
 
