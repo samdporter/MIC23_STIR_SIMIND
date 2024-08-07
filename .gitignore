@@ -1,0 +1,19 @@
+# output files
+*.png
+*.jpg
+*.hs
+*.s
+*.hv
+*.ahv
+*.v
+*.a00
+*.h00
+*tmp*
+
+# keep data files
+!data/*
+
+# pycache
+__pycache__/
+
+
