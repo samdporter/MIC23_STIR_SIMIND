@@ -39,7 +39,7 @@ def parse_interfile(filename):
                 values[key] = value
     return values
 
-def create_window_file(lower_bounds:list, upper_bounds:list, scatter_orders:list, output_filename:str='input'):
+def create_window_file(lower_bounds:list, upper_bounds:list, scatter_orders:list, output_filename:str='input', energy_window=None, lower_ew=None, upper_ew=None):
     """
     Creates a window file for simind simulation
 
@@ -48,6 +48,10 @@ def create_window_file(lower_bounds:list, upper_bounds:list, scatter_orders:list
         upper_bounds (list): upper bounds of energy windows
         scatter_orders (list): scatter orders of energy windows
         output_filename (str, optional): name of output file. Defaults to 'input'.
+        ! energy_window (str, optional): energy window type can be dew or dew. Defaults to None. 
+        ! lower_ew (list, optional): lower energy window lower and upper bounds. Defaults to None.
+        ! upper_ew (list, optional): upper energy window lower and upper bounds. Defaults to None.
+        ! Note that dual and triple energy windows are not yet supported by this wrapper. Please define your own energy windows and work out yourself
     """
 
     if isinstance(lower_bounds, Number):
@@ -223,126 +227,6 @@ def extract_attributes_from_stir_headerfile(filename: str):
                     attributes['distance_to_detector'] = float(tmp)
                 
     return attributes
-
-
-def run_simind_simulation(source, mu_map, input_filepath, num_projections, calibration_factor = 1, 
-                          photopeak_energy = 0.12, multiplier=1, input_filename = "input", output_filename = "output",
-                          output_filepath = ".", source_type="tc99m", collimator = "ma-legp", distance_to_detector = None,
-                          start_angle = 360, rotation_angle = 360, direction = "CCW", image_duration_per_projection = 1,
-                          source_activity=1):
-    """Runs simind simulation - temporary function to inform development of eventual simind_simulator class
-
-    Args:
-        source (string or ImageData): source image or file name of source image
-        mu_map (string or ImageData): mu map image or file name of mu map image
-        input_filepath (string): path to input files
-        num_projections (int): number of projections
-        calibration_factor (float, optional): calibration factor for source. Defaults to 1.
-        photopeak_energy (float, optional): attenuation coefficient of water. Defaults to 0.12.
-        multiplier (int, optional): multiplier for number of photons. Defaults to 1.
-        input_filename (str, optional): name of input file. Defaults to "input".
-        output_filename (str, optional): name of output file. Defaults to "output".
-        output_filepath (str, optional): path to output files. Defaults to ".".
-        source_type (str, optional): source type. Defaults to "tc99m".
-        collimator (str, optional): collimator type. Defaults to "ma-legp".
-    """
-
-    if isinstance(source, str):
-        source = ImageData(source)
-    elif isinstance(source, ImageData):
-        pass
-    else:
-        raise TypeError('source must be a string or SIRF ImageData object')
-
-    if isinstance(mu_map, str):
-        mu_map = ImageData(mu_map)
-    elif isinstance(mu_map, ImageData):
-        pass
-    else:
-        raise TypeError('mu_map must be a string or SIRF ImageData object')
-    
-    if source.dimensions() != mu_map.dimensions() or source.voxel_sizes() != mu_map.voxel_sizes():
-        raise ValueError('At the moment source and mu_map must have same dimensions and voxel sizes')
-    
-    source_arr = source.as_array()*calibration_factor
-    source_arr.astype(np.float16).tofile('tmp_source.smi')
-    
-    mu_map_arr = mu_map.as_array()*1000/photopeak_energy
-    mu_map_arr.astype(np.uint16).tofile('tmp_density.dmi')
-
-    dim_z, dim_yx, dim_xy = source.dimensions()
-    vox_xy, vox_yx, vox_z = source.voxel_sizes()
-
-    #divide voxel size by 10 to get cm
-    vox_xy /= 10
-    vox_yx /= 10
-    vox_z /= 10
-
-    print(vox_xy, vox_yx, vox_z)
-
-    if direction == "CCW":
-        rotation_angle = -rotation_angle
-        start_angle = -start_angle
-    elif direction == "CW":
-        pass
-
-    # simind requires a specific number for each direction and amount of rotation
-    # STIR can handle any number, but simind can't
-    # STIR sinograms can contain floats for start_angle and extent_of_rotation
-    # simind sinograms can only contain integers - so we need to convert
-    if np.isclose(rotation_angle, -360, rtol=0, atol=1e-1):
-        rotation_switch = 0
-    elif np.isclose(rotation_angle, -180, rtol=0, atol=1e-1):
-        rotation_switch = 1
-    elif np.isclose(rotation_angle, 180, rtol=0, atol=1e-1):
-        rotation_switch = 2
-    elif np.isclose(rotation_angle, 360, rtol=0, atol=1e-1):
-        rotation_switch = 3
-    else:
-        raise ValueError('rotation_angle must be -360, -180, 180 or 360')
-    
-    start_angle = start_angle + 180
-    if start_angle > 360:
-        start_angle -= 360
-
-    print(f"rotation_angle: {rotation_angle}")
-    print(f"start_angle: {start_angle}")
-
-    if distance_to_detector is None:
-        distance_to_detector = vox_xy*dim_xy/2
-
-    if dim_xy != dim_yx or vox_xy != vox_yx:
-        raise ValueError('At the moment source and mu map must have square voxels')
-    
-    for (root, dirs, files) in os.walk(input_filepath):
-        for f in files:
-            if not os.path.exists(os.path.join(output_filepath,"symlink_"+f)):
-                os.symlink(os.path.join(input_filepath,f), os.path.join(output_filepath,"symlink_"+f))
-                print("symlink @ " + os.path.join(input_filepath,"symlink_"+f))
-            else: print("symlink already exists")
-
-    subprocess.run(["simind", f"symlink_{input_filename}", output_filename,\
-                    f"/NN:{multiplier}/FS:tmp_source/FD:tmp_density/FW:symlink_{input_filename}/PX:{vox_xy}\
-                    /01:{photopeak_energy} \
-                    /TH:{vox_z}/28:{vox_xy}/31:{vox_xy}/fi:{source_type}/cc:{collimator}/ca:1/02:{vox_z*dim_z/2}/05:{vox_z*dim_z/2}\
-                    /03:{vox_xy*dim_xy/2}/04:{vox_xy*dim_xy/2}/06:{vox_xy*dim_xy/2}/07:{vox_xy*dim_xy/2}\
-                    /14:-1/15:-1/29:{num_projections}/34:{dim_z}/76:{dim_xy}/77:{dim_xy}/78:{dim_xy}\
-                    /79:{dim_xy}/81:0/82:0/84:1/30:{rotation_switch}/41:{start_angle}/12:{distance_to_detector}/25:{source_activity}\
-                    /tr:04/tr:05/tr:11/tr:14"]) # simulation flags
-    
-    # remove temporary files
-    os.remove('tmp_source.smi')
-    os.remove('tmp_density.dmi')
-
-    # remove symlinks
-    for (root, dirs, files) in os.walk(output_filepath):
-        for f in files:
-            if f[:8] == "symlink_":
-                try:
-                    os.remove(os.path.join(output_filepath,f))
-                    print("removed symlink @ " + os.path.join(output_filepath,f))
-                except:
-                    print("could not remove symlink @ " + os.path.join(output_filepath,f))
 
 
 ### classes ###
@@ -559,167 +443,113 @@ import numpy as np
 
 class SimindSimulator:
 
-    """ Class to run simind simulations
+    """ 
+    Class to run simind simulations with SIRF data
     Currently only for circular orbit, but should be trivial to add non-circular orbit
     """    
     
-    def __init__(self, input_filepath, output_filepath="."):
+    def __init__(self, template_smc_file_path, output_dir, output_prefix='output', source=None, mu_map=None, template_sinogram=None, photon_multiplier=1):
         """ Initialises SimindSimulator object
 
         Args:
             input_filepath (str): path to simind input files
-            output_filepath (str, optional): _description_. Defaults to ".".
-        """        
-        self.input_filepath = input_filepath
-        self.output_filepath = output_filepath
+            output_dir (str): path to output directory
+        """
 
-        self.source = None # source image - should be SIRF ImageData object or file name
-        self.mu_map = None # mu map image - should be SIRF ImageData object or file name
-        self.num_projections = None # number of projections
-        self.calibration_factor = 1 # calibration factor for output sinogram
-        self.photopeak_energy = 140 # photopeak energy in keV - defaults to Tc-99m
-        self.multiplier = 0.01 # multiplier for number of photons simulated
-        self.input_filename = "input" # input filename - defaults to input. Must be the same for all input files at the moment
-        self.output_filename = "output" # output filename - defaults to output. Is the same for all output files at the moment
-        self.source_type = "tc99m" # source type
-        self.collimator = "ma-legp" # collimator - defaults to Mediso AnyScan LE GP
-        self.distance_to_detector = None
-        self.start_angle = 360 # start angle for camera rotation
-        self.rotation_angle = 360 # number of degrees to rotate camera
-        self.direction = "CCW" # direction of rotation
-        self.image_duration_per_projection = 1 # image duration per projection in seconds
-        self.source_activity = 1 # source activity in MBq
-        self.model_attenuation = True # whether to model attenuation in simind
-        self.fix_rounded_output_values = True # whether to fix rounded output values in simind
-        self.kev_per_channel = 2 # keV per channel in simind - keV starts at 0
-        self.num_energy_spectra_channels = 200 # number of energy spectra channels in simind
-        self.template_sinogram = None
+        self.check_files_exist([template_smc_file_path])
+        self.input_dir = os.path.dirname(template_smc_file_path)
+        self.template_smc_file_path = template_smc_file_path
+        self.smc_file_path = os.path.join(self.input_dir, "simind.smc")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        self.output_dir= output_dir
+        self.output_filepath = os.path.join(output_dir, output_prefix)
+        # ensure output path is empty
+        assert len(os.listdir(output_dir)) == 0, "Output directory must be empty"
+
+        self.config = SimulationConfig(template_smc_file_path)
+        self.runtime_switches = RuntimeSwitches()
+
+        self.source = source
+        self.mu_map = mu_map
+        self.template_sinogram = template_sinogram
+        
         self.output = None
-        self.custom_variables = {}
-        self.custom_flags = {}
 
-        self.attribute_map = {
-            'SourceMap': 'source',
-            'MuMap': 'mu_map',
-            'input_filepath': 'input_filepath',
-            'NumberOfProjections': 'num_projections',
-            'CalibrationFactor': 'calibration_factor',
-            'PhotopeakEnergy': 'photopeak_energy',
-            'PhotonMultiplier': 'multiplier',
-            'input_filename': 'input_filename',
-            'output_filename': 'output_filename',
-            'output_filepath': 'output_filepath',
-            'SourceType': 'source_type',
-            'Collimator': 'collimator',
-            'DistanceToDetector': 'distance_to_detector',
-            'StartAngle': 'start_angle',
-            'RotationAngle': 'rotation_angle',
-            'DirectionOfRotation': 'direction',
-            'ImageDurationPerProjection': 'image_duration_per_projection',
-            'SourceActivity': 'source_activity',
-            'ModelAttenuation': 'model_attenuation',
-            'FixRoundedOutputValues': 'fix_rounded_output_values',
-            'keVPerChannel': 'kev_per_channel',
-            'NumberOfEnergySpectraChannels': 'num_energy_spectra_channels'
-        }
+        if source is not None:
+            self.set_source(source)
+        if mu_map is not None:
+            self.set_mu_map(mu_map)
+        if template_sinogram is not None:
+            self.set_template_sinogram(template_sinogram)
 
-        self.files_converted = False # flag to check if output files have been converted to stir
+        self.runtime_switches.set_switch('NN', photon_multiplier)
 
-    def set_attributes(self, **kwargs):
-        """Set attributes based on keyword arguments"""
-        for key, value in kwargs.items():
-            self.set_input(key, value)
-
-    def set_attributes(self, attributes):
-        """Set attributes based on dictionary of attributes"""
-        for key, value in attributes.items():
-            self.set_input(key, value)
-    
-    def get_attributes(self):
-        """Returns dictionary of attributes"""
-        return {key: getattr(self, value) for key, value in self.attribute_map.items()}
-    
-    def print_attributes(self):
-        """Prints dictionary of attributes with line breaks"""
-        for key, value in self.attribute_map.items():
-            print(f"{key}: {getattr(self, value)}")
-
-    def check_set_up(self):
-        """Check that all required attributes are set before running the simulation."""
+        # set appropriate indices and flags for voxelised phantom
+        self.config.set_flag(5, True) # SPECT study
+        self.config.set_value(15, -1) # source type
+        self.config.set_value(14, -1) # phantom type
+        self.config.set_flag(14, True) # write to interfile header
         
-        required_attributes = self.attribute_map.values()
-        
-        for attribute in required_attributes:
-            if not hasattr(self, attribute):
-                raise ValueError(f"The attribute '{attribute}' must be set before running the simulation.")
-        
-        print("All required attributes are set and ready for simulation.")
-        return True
+        self.window_set = False
 
-    def check_relevant_files(self):
-        """Check that all relevant files exist in the input_filepath."""
-        
-        assert os.path.exists(os.path.join(self.input_filepath, self.input_filename + ".smc")), f"input_filename.smc does not exist in {self.input_filepath}"
-        assert os.path.exists(os.path.join(self.input_filepath, self.input_filename + ".win")), f"input_filename.win does not exist in {self.input_filepath}"
+    def check_files_exist(self, filepaths):
+        """Check that file exists"""
+        for f in filepaths:
+            assert os.path.exists(f), f"{f} does not exist"
 
-        print(f"All relevant files exist in {self.input_filepath}.")
+    @staticmethod   
+    def find_parent_directory(file_path):
+        # Get the absolute path of the file
+        absolute_path = os.path.abspath(file_path)
+        # Get the directory name of the file path
+        directory_name = os.path.dirname(absolute_path)
+        # Get the parent directory
+        parent_directory = os.path.dirname(directory_name)
+        return parent_directory
 
-    def clear_output_filepath(self):
-        """Clears all files in output_filepath"""
-
-        print(f"Clearing all files in {self.output_filepath} that could cause trouble...")
-        print("This includes:")
-        print(" - .h00, .hs, .a00, .hct, .ict, .bis, .res")
-        print("if this is not what you want, please cancel this process now.")
-        # wait 5 seconds and count down
-        for i in range(5,0,-1):
-            print(i)
-            time.sleep(1)
-
-        for (root, dirs, files) in os.walk(self.output_filepath):
-            del dirs[:] # don't recurse into subdirectories
-            for f in files:
-                if f[-4:] == ".h00" or f[-3:] == ".hs" or f[-4:] == ".a00" or f[-4:] == ".hct" or f[-4:] == ".ict" or f[-4:] == ".bis" or f[-4:] == ".res" and self.output_filename in f:
-                    os.remove(os.path.join(root, f))
-                    print(f"removed {f}")
-
+    # output filename is scattwin.win in the same dir as the template smc file
     def set_windows(self, lower_bounds, upper_bounds, scatter_orders):
+        output_filename = os.path.join(self.input_dir, "scattwin.win")
         """Sets energy windows for simind simulation"""
         create_window_file(lower_bounds, upper_bounds, scatter_orders, 
-                           output_filename = os.path.join(self.input_filepath, 
-                                                          self.input_filename + ".win"))
+                           output_filename)
+        
+        self.window_set = True
 
-    def check_source_density_match(self):
+    def check_images_match(self, image0, image1):
         """Checks that source and mu map have same dimensions and voxel sizes"""
-        assert self.source.voxel_sizes() == self.mu_map.voxel_sizes(), "Source and mu map must have same voxel sizes"
-        assert self.source.dimensions() == self.mu_map.dimensions(), "Source and mu map must have same dimensions"
+        assert image0.voxel_sizes() == image1.voxel_sizes(), "Source and mu map must have same voxel sizes"
+        assert image0.dimensions() == image1.dimensions(), "Source and mu map must have same dimensions"
 
     def check_square_pixels_and_image(self, image):
         """ Checks that image has square pixels and same x,y dimensions"""
-
         assert image.voxel_sizes()[2] == image.voxel_sizes()[1], "Image must have square pixels"
-        assert image.dimensions()[1] == image.dimensions()[2], "Image must have same x,y dimensions"
+        assert image.dimensions()[1] == image.dimensions()[2], "Image must have same x,y dimensions" 
 
-    def print_identifiers(self):
-        """Print all possible string identifiers for class attributes."""
-        for identifier in self.attribute_map:
-            print(identifier)
-
-    def set_input(self, identifier, value):
-        """Set an attribute based on a string identifier."""
-
-        if identifier not in self.attribute_map:
-            raise ValueError(f"'{identifier}' is not a valid identifier.\nValid identifiers can be found by calling print_identifiers()")
+    def add_index(self, index, value):
+        """Add an index value to the simulation"""
+        self.config.set_value(index, value)
         
-        setattr(self, self.attribute_map[identifier], value)
+    def add_flag(self, flag, value:bool):
+        """Add a flag to the simulation"""
+        self.config.set_flag(flag, value)
 
-    def get_input(self, identifier):
-        """Get an attribute based on a string identifier."""
+    def add_text_variable(self, variable, value):
+        """Add a text variable to the simulation"""
+        self.config.set_text_variable(variable, value)
 
-        if identifier not in self.attribute_map:
-            raise ValueError(f"'{identifier}' is not a valid identifier.\nValid identifiers can be found by calling print_identifiers()")
-        
-        return getattr(self, self.attribute_map[identifier])
+    def add_data_file(self, data_file):
+        """Add a data file to the simulation"""
+        self.config.set_data_file(data_file)
+
+    def add_comment(self, comment):
+        """Add a comment to the simulation"""
+        self.config.set_comment(comment)
+
+    def add_runtime_switch(self, switch, value):
+        """Add a runtime switch to the simulation"""
+        self.runtime_switches.set_switch(switch, value)
 
     def set_source(self, source):
         if isinstance(source, str):
@@ -728,6 +558,20 @@ class SimindSimulator:
             self.source = source
         else:
             raise TypeError('source must be a string or SIRF ImageData object')
+        
+        # get dimensions and voxel sizes
+        dim_z, dim_xy, vox_xy, vox_z = self.get_dimensions_and_voxel_sizes(self.source)
+        # Divide voxel size by 10 to get cm
+        vox_xy /= 10
+        vox_z /= 10
+        
+        self.add_index(2, vox_z*dim_z/2)
+        self.add_index(3, vox_xy*dim_xy/2)
+        self.add_index(4, vox_xy*dim_xy/2)
+
+        self.add_index(28, vox_xy)
+        self.add_index(76, dim_xy)
+        self.add_index(77, dim_xy)
 
     def set_mu_map(self, mu_map):
         if isinstance(mu_map, str):
@@ -737,141 +581,35 @@ class SimindSimulator:
         else:
             raise TypeError('mu_map must be a string or SIRF ImageData object')
         
-    def set_model_attenuation(self, model_attenuation: bool):
-        self.model_attenuation = model_attenuation
-
-    def set_num_projections(self, num_projections):
-        self.num_projections = num_projections
-
-    def set_calibration_factor(self, calibration_factor):
-        self.calibration_factor = calibration_factor
-
-    def set_photopeak_energy(self, photopeak_energy:float):
-        self.photopeak_energy = photopeak_energy
-
-    def set_multiplier(self, multiplier: Number):
-        self.multiplier = multiplier
-
-    def set_input_filename(self, input_filename: str):
-        self.input_filename = input_filename
-
-    def set_output_filename(self, output_filename: str):
-        self.output_filename = output_filename
-
-    def set_source_type(self, source_type: str):
-        self.source_type = source_type
-
-    def set_collimator(self, collimator: str):
-        self.collimator = collimator
-
-    def set_distance_to_detector(self, distance_to_detector: Number):
-        self.distance_to_detector = distance_to_detector
-
-    def set_start_angle(self, start_angle: Number):
-        self.start_angle = start_angle
-
-    def set_rotation_angle(self, rotation_angle: Number):
-        self.rotation_angle = int(np.round(rotation_angle, 0))
-
-    def set_direction(self, direction: str):
-        direction = direction.upper().strip()
-        if direction not in ["CW", "CCW"]:
-            raise ValueError("direction must be 'CW' or 'CCW'")
-        self.direction = direction
-
-    def set_image_duration_per_projection(self, image_duration_per_projection: Number):
-        self.image_duration_per_projection = image_duration_per_projection
-
-    def set_source_activity(self, source_activity: Number):
-        """ Multiplies the values of detector bins by this factor."""
-        self.source_activity = source_activity
-        
-    def set_custom_variable(self, variable_code, value):
-        """Sets a custom variable for the Simind simulation."""
-        self.custom_variables[variable_code] = value
-        
-    def set_custom_flag(self, flag_code, value:bool):
-        """Sets a custom flag for the Simind simulation."""
-        if value:
-            value_str = "tr"
-        else:
-            value_str = "fa"
-        self.custom_flags[value_str] = flag_code
-
-    def set_template_sinogram(self, template_sinogram):
-        """ Sets the template sinogram for the simulation. """
-        print("Warning: This will overwrite any other settings with those found in the template sinogram.")
-        if isinstance(template_sinogram, str):
-            attribute_dict = extract_attributes_from_stir_headerfile(template_sinogram)
-        elif isinstance(template_sinogram, AcquisitionData):
-            attribute_dict = extract_attributes_from_stir_sinogram(template_sinogram)
-        else:
-            raise TypeError('template_sinogram must be a string or SIRF AcquisitionData object')
-        self.num_projections = attribute_dict['number_of_projections']
-        self.start_angle = attribute_dict['start_angle']
-        self.rotation_angle = int(np.round(attribute_dict['extent_of_rotation'], 0))
-        self.direction = attribute_dict['direction_of_rotation']
-        self.distance_to_detector = attribute_dict['distance_to_detector']/10
-
-        self.template_sinogram = template_sinogram.clone()
-
-    def run_simulation(self):
-        """
-        Runs simind simulation - method for SimindSimulator class
-        Currently only supports square pixels. 
-        """
-
-        self.files_converted = False # flag to check if output files have been converted to stir
-        self.clear_output_filepath()
-
-        self.check_set_up()
-        self.check_relevant_files()
-
-        if isinstance(self.source, str):
-            self.source = ImageData(self.source)
-        elif not isinstance(self.source, ImageData):
-            raise TypeError('source must be a string or SIRF ImageData object')
-
-        if isinstance(self.mu_map, str):
-            self.mu_map = ImageData(self.mu_map)
-        elif not isinstance(self.mu_map, ImageData):
-            raise TypeError('mu_map must be a string or SIRF ImageData object')
-        
-        if self.source.dimensions() != self.mu_map.dimensions() or self.source.voxel_sizes() != self.mu_map.voxel_sizes():
-            raise ValueError('At the moment source and mu_map must have same dimensions and voxel sizes')
-        
-        self.check_source_density_match() # currently only supports pixels of same size in source and mu_map
-        self.check_square_pixels_and_image(self.source)
-        self.check_square_pixels_and_image(self.mu_map)
-
-        # save temporary binary files
-        source_arr = self.source.as_array() * self.calibration_factor
-        source_arr.astype(np.float16).tofile('tmp_source.smi')
-
-        if self.model_attenuation:
-            mu_map_arr = self.mu_map.as_array()
-            mu_map_arr = attenuation_to_density(mu_map_arr, self.photopeak_energy)*1000
-            import matplotlib.pyplot as plt
-            mu_map_arr.astype(np.uint16).tofile('tmp_density.dmi')
-            att_switch = "tr"
-        else:
-            att_switch = "fa"
-
         # get dimensions and voxel sizes
-        dim_z, _, dim_xy = self.source.dimensions()
-        vox_xy, _, vox_z = self.source.voxel_sizes()
+        dim_z, dim_xy, vox_xy, vox_z = self.get_dimensions_and_voxel_sizes(self.mu_map)
 
         # Divide voxel size by 10 to get cm
         vox_xy /= 10
         vox_z /= 10
+        
+        self.add_index(5, vox_z*dim_z/2)
+        self.add_index(6, vox_xy*dim_xy/2)
+        self.add_index(7, vox_xy*dim_xy/2)
 
-        if self.direction.lower() == "ccw":
+        self.add_index(31, vox_xy) # pixel size density images
+        self.add_index(33, 1) # first image density images
+        self.add_index(34, dim_z) # number density images
+        self.add_index(78, dim_xy) # matrix size density map i
+        self.add_index(79, dim_xy) # matrix size density map j
+
+        self.runtime_switches.set_switch('PX', vox_xy)
+        self.runtime_switches.set_switch('TH', vox_z)
+        
+    def set_rotation_in_stir_geometry(self, rotation_angle:Number, start_angle:Number, direction:str,):
+
+        if direction.lower() == "ccw":
             # simind needs angles to be negative for CCW rotation
-            rotation_angle = -self.rotation_angle
-            start_angle = -self.start_angle
+            rotation_angle = -rotation_angle
+            start_angle = -start_angle
         elif self.direction.lower() == "cw":
-            rotation_angle = self.rotation_angle
-            start_angle = self.start_angle
+            rotation_angle = rotation_angle
+            start_angle = start_angle
         else:
             raise ValueError("direction must be 'CW' or 'CCW'")
 
@@ -890,72 +628,113 @@ class SimindSimulator:
         else:
             raise ValueError('rotation_angle must be -360, -180, 180 or 360')
         
-        # STIR and simind have different conventions for start angle
-        start_angle = self.start_angle + 180
+        # start angles in simind and STIR are opposite
+        start_angle+=180
         if start_angle > 360:
             start_angle -= 360
-
-        # if distance_to_detector is not set, set it to half the source map size
-        if self.distance_to_detector is None:
-            self.distance_to_detector = vox_xy * dim_xy / 2
         
-        for (root, dirs, files) in os.walk(self.input_filepath):
-            del dirs[:] # don't recurse into subdirectories
-            for f in files:
-                if not os.path.exists(os.path.join(self.output_filepath, "symlink_" + f)) and self.input_filename in f:
-                    os.symlink(os.path.join(self.input_filepath, f), os.path.join(self.output_filepath, "symlink_" + f))
-                else:
-                    print("symlink already exists")
+        return rotation_switch, start_angle
 
-        command = [
-            "simind", f"symlink_{self.input_filename}", self.output_filename, # input and output filenames
-            f"/NN:{self.multiplier}" # photon multiplier (accuracy versus time)
-            f"/FS:tmp_source/FD:tmp_density/FW:symlink_{self.input_filename}" # source, density and energy window filenames
-            f"/14:-1/15:-1" # set to use voxelised phantoms
-            f"/fi:{self.source_type}" # SIMIND source type (e.g Lu177 / Tc99m)
-            f"/cc:{self.collimator}" # define collimator
-            "/84:1" # scattwin routine
-            f"/01:{self.photopeak_energy}" # photopeak energy
-            f"/PX:{vox_xy}/TH:{vox_z}" # pixel size and slice thickness
-            f"/28:{vox_xy}/31:{vox_xy}" # pixel size in x and y (I think unnecessary due to above)
-            f"/02:{vox_z * dim_z / 2}/05:{vox_z * dim_z / 2}/03:{vox_xy * dim_xy / 2}\
-                /04:{vox_xy * dim_xy / 2}/06:{vox_xy * dim_xy / 2}/07:{vox_xy * dim_xy / 2}" # source and mumap sizes
-            f"/29:{self.num_projections}/34:{dim_z}/76:{dim_xy}/77:{dim_xy}/78:{dim_xy}/79:{dim_xy}" # number of projections and dimensions of simulated data, source and phantom
-            f"/81:0/82:0" # use above (78,79) for source & density matrix sizes
-            f"/30:{rotation_switch}/41:{start_angle}/12:{self.distance_to_detector}" # rotation switch, start angle and distance to detector
-            f"/80:{self.num_energy_spectra_channels}/27:{self.kev_per_channel}" # energy spectra channels and keV per channel
-            f"/25:{self.image_duration_per_projection*self.source_activity}" # source activity * image duration
-            "/tr:04" # include collimator
-            "/tr:05"  # simulate SPECT (as opposed to planar)
-            f"/{att_switch}:11" # whether to include attenuation
-            "/tr:14" # set to write interfile header
-        ]
+    def set_template_sinogram(self, template_sinogram):
+        """ Sets the template sinogram for the simulation. """
+        print("Warning: This will overwrite any other settings with those found in the template sinogram.")
+        if isinstance(template_sinogram, str):
+            attribute_dict = extract_attributes_from_stir_headerfile(template_sinogram)
+        elif isinstance(template_sinogram, AcquisitionData):
+            attribute_dict = extract_attributes_from_stir_sinogram(template_sinogram)
+        else:
+            raise TypeError('template_sinogram must be a string or SIRF AcquisitionData object')
         
-        # Add custom variables
-        for variable_code, value in self.custom_variables.items():
-            command.append(f"/{variable_code}:{value}")
+        self.add_index(29, attribute_dict['number_of_projections'])
+        self.add_index(41, attribute_dict['start_angle'])
+        self.add_index(12, attribute_dict['distance_to_detector']/10) # convert to cm
+        rotation_switch, start_angle = self.set_rotation_in_stir_geometry(attribute_dict['extent_of_rotation'], 
+                                                                          attribute_dict['start_angle'],
+                                                                          attribute_dict['direction_of_rotation'],)
+        self.add_index(30, rotation_switch)
+        self.add_index(41, start_angle)
+
+        self.template_sinogram = template_sinogram.clone()
+
+    def update_linux_path_strings(self):
+        """Updates path strings for linux"""
+        self.smc_file_path = self.smc_file_path.replace("\\", "/")
+        self.output_dir = self.output_dir.replace("\\", "/")
+        self.input_dir = self.input_dir.replace("\\", "/")
+        self.output_filepath = self.output_filepath.replace("\\", "/")
+
+    def get_dimensions_and_voxel_sizes(self, image):
+        """Get dimensions and voxel sizes of image"""
+        dim_z, _, dim_xy = image.dimensions()
+        vox_xy, _, vox_z = image.voxel_sizes()
+        return dim_z, dim_xy, vox_xy, vox_z
+
+    def run_simulation(self):
+        """
+        Runs simind simulation - method for SimindSimulator class
+        Currently only supports square pixels. 
+        """
+
+        self.files_converted = False # flag to check if output files have been converted to stir
+        
+        if self.window_set is False:
+            raise ValueError("Energy windows must be set before running simulation\nUse set_windows method")
+        
+        self.check_images_match(self.source, self.mu_map)
+        self.check_square_pixels_and_image(self.source)
+        self.check_square_pixels_and_image(self.mu_map)
+        
+        cwd = os.getcwd()
+        os.chdir(self.input_dir)
+        
+        if self.config.get_flag(11):
+            mu_map_arr = self.mu_map.as_array()
+            mu_map_arr = attenuation_to_density(mu_map_arr, self.config.get_value('photon_energy'))*1000
+        else:
+            mu_map_arr = np.zeros(self.mu_map.shape)
             
-        # Add custom flags
-        for flag_code, value in self.custom_flags.items():
-            command.append(f"/{value}:{flag_code}")
+        mu_map_arr.astype(np.uint16).tofile('tmp_density.dmi')
+        self.config.set_data_file(11, "tmp_density")
+        print(self.config.get_data_file(11))
+            
+        self.source.as_array().astype(np.float16).tofile('tmp_source.smi')
+        self.config.set_data_file(12, "tmp_source")
+        print(self.config.get_data_file(12))
+
+        # if linux os update path strings
+        if os.name == 'posix':
+            print("Updating path strings for linux")
+            self.update_linux_path_strings()
+
+        # write smc file
+        self.config.save_file(self.smc_file_path)
+
+        command = ["simind", self.smc_file_path, self.output_filepath]
+        # add switches
+        print(self.runtime_switches.switches)
+        switches = ""
+        for key, value in self.runtime_switches.switches.items():
+            switches+=(f'/{key}:{str(value)}')
+        command.append(switches)
+        
+        # move input files to output directory
+            
+        print(f"Running simind with command: {' '.join(command)}")     
             
         subprocess.run(command)
 
         # remove temporary files
         os.remove('tmp_source.smi')
-        os.remove('tmp_density.dmi')
-
-        # remove symlinks
-        for (root, dirs, files) in os.walk("."):
-            del dirs[:] # don't recurse into subdirectories
-            for f in files:
-                if f.startswith("symlink_"):
-                    try:
-                        os.remove(os.path.join(self.output_filepath, f))
-                        print("removed symlink @ " + os.path.join(self.output_filepath, f))
-                    except:
-                        print("could not remove symlink @ " + os.path.join(self.output_filepath, f))
-
+        os.remove('tmp_density.dmi') 
+        
+        # check if output files have been put in the output directory
+        if len(os.listdir(self.output_dir)) == 0:
+            print("No output files found in output directory. SIMIND isn't very good at this\nManually moving files. Sorry if this moves files you don't want moved")
+            for f in os.listdir(self.input_dir):
+                if f.endswith('.h00') or f.endswith('.a00'):
+                    os.rename(os.path.join(self.input_dir, f), os.path.join(self.output_dir, f))
+        
+        os.chdir(cwd)
 
     def get_output(self):
         """Get output files from simind simulation"""
@@ -967,12 +746,13 @@ class SimindSimulator:
         converter = Converter()
         if not self.files_converted:
             # find all files with output directory ending in .h00 
-            files = [f for f in os.listdir(self.output_filepath) if f.endswith('.h00')]
+            files = [f for f in os.listdir(self.output_dir) if f.endswith('.h00')]
             for f in files:
-                converter.convert(os.path.join(self.output_filepath, f))
+                converter.convert(os.path.join(self.output_dir, f))
             self.files_converted = True
+        # if output dir is not empty, convert files
         # find all files with output directory ending in .hs
-        files = [f for f in os.listdir(self.output_filepath) if f.endswith('.hs')]
+        files = [f for f in os.listdir(self.output_dir) if f.endswith('.hs')]
         # sort converted files by number (w{n}.hs) and then tot_w{n}.hs, sca_w{n}.hs, air_w{n}.hs
         # files look like {output_filename}_{tot/sca/air}_w{n}.hs
         files.sort(key=lambda f: int(f.split('_')[-1].split('.')[0][1:]))
@@ -982,7 +762,7 @@ class SimindSimulator:
             f_split = f.split('_')
             scat_type = f_split[-2]
             window = f_split[-1].split('.')[0]
-            output[scat_type + "_" + window] = AcquisitionData(os.path.join(self.output_filepath, f))
+            output[scat_type + "_" + window] = AcquisitionData(os.path.join(self.output_dir, f))
             # simind can round these values so let's make sure they are correct
             if self.template_sinogram is not None:
                 output[scat_type + "_" + window] = converter.replace_sinogram_values_based_on_reference(self.template_sinogram, output[scat_type + "_" + window])
@@ -1009,3 +789,393 @@ class SimindSimulator:
         """Get air output file from simind simulation"""
         outputs = self.get_output()
         return outputs['air_w' + str(window)]
+    
+
+import re
+
+class SimulationConfig:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.index_dict = {
+            1: "photon_energy", 2: "source_half_length", 3: "source_half_width", 4: "source_half_height",
+            5: "phantom_half_length", 6: "phantom_half_width", 7: "phantom_half_height", 8: "crystal_half_length_radius",
+            9: "crystal_thickness", 10: "crystal_half_width", 11: "backscattering_material_thickness",
+            12: "height_to_detector_surface", 13: "cover_thickness", 14: "phantom_type", 15: "source_type",
+            16: "shift_source_x", 17: "shift_source_y", 18: "shift_source_z", 19: "photon_direction",
+            20: "upper_window_threshold", 21: "lower_window_threshold", 22: "energy_resolution",
+            23: "intrinsic_resolution", 24: "emitted_photons_per_decay", 25: "source_activity",
+            26: "number_photon_histories", 27: "kev_per_channel", 28: "pixel_size_simulated_image",
+            29: "spect_no_projections", 30: "spect_rotation", 31: "pixel_size_density_images",
+            32: "orientation_density_images", 33: "first_image_density_images", 34: "number_density_images",
+            35: "density_limit_border", 36: "shift_density_images_y", 37: "shift_density_images_z",
+            38: "step_size_photon_path_simulation", 39: "shift_density_images_x", 40: "density_threshold_soft_bone",
+            41: "spect_starting_angle", 42: "spect_orbital_rotation_fraction", 43: "camera_offset_x",
+            44: "camera_offset_y", 45: "code_definitions_zubal_phantom", 46: "hole_size_x", 47: "hole_size_y",
+            48: "distance_between_holes_x", 49: "distance_between_holes_y", 50: "shift_center_hole_x",
+            51: "shift_center_hole_y", 52: "collimator_thickness", 53: "collimator_routine", 54: "hole_shape",
+            55: "type", 56: "distance_collimator_detector", 57: "unused_parameter_1", 58: "unused_parameter_2",
+            59: "random_collimator_movement", 60: "unused_parameter_3", 76: "matrix_size_image_i",
+            77: "matrix_size_image_j", 78: "matrix_size_density_map_i", 79: "matrix_size_source_map_i",
+            80: "energy_spectra_channels", 81: "matrix_size_density_map_j", 82: "matrix_size_source_map_j",
+            83: "cutoff_energy_terminate_photon_history", 84: "scoring_routine", 85: "csv_file_content",
+            91: "voltage", 92: "mobility_life_electrons", 93: "mobility_life_holes", 94: "contact_pad_size",
+            95: "anode_element_pitch", 96: "exponential_decay_constant_tau", 97: "components_hecht_formula",
+            98: "energy_resolution_model", 99: "cloud_mobility", 100: "detector_array_size_i",
+            101: "detector_array_size_j"
+        }
+        self.flag_dict = {
+            1: "write_results_to_screen", 2: "write_images_to_files", 3: "write_pulse_height_distribution_to_file",
+            4: "include_collimator", 5: "simulate_spect_study", 6: "include_characteristic_xray_emissions",
+            7: "include_backscattering_material", 8: "use_random_seed_value", 9: "currently_not_in_use",
+            10: "include_interactions_in_cover", 11: "include_interactions_in_phantom",
+            12: "include_energy_resolution_in_crystal", 13: "include_forced_interactions_in_crystal",
+            14: "write_interfile_header_files", 15: "save_aligned_phantom_images"
+        }
+        
+        self.data_file_dict = {
+            7: "phantom_soft_tissue", 8: "phantom_bone", 9: "cover_material", 10: "crystal_material",
+            11: "image_file_phantom", 12: "image_file_source", 13: "backscatter_material", 14: "energy_resolution_file",
+        }
+        
+        self.dict = {"index": self.index_dict, "flag": self.flag_dict, "data_file": self.data_file_dict}
+        
+        self.data = None
+        self.flags = None
+        self.text_variables = {}
+        self.data_files = {}
+        self.comment = None
+        self.read_file()
+
+
+    def read_file(self):
+        with open(self.filepath, 'r') as file:
+            lines = file.readlines()
+            self.comment = lines[1].strip()
+
+            # Parsing Basic Change data
+            data_lines = lines[3:27]
+            data_string = ' '.join(data_lines).replace("\n", "")
+            self.data = [float(val) for val in re.findall(r'-?\d+\.\d+E[+-]\d+', data_string)]
+
+            # Parsing Simulation flags
+            self.flags = lines[28].strip().replace(' ', '')
+
+            # Parsing Text Variables
+            text_variables_start = 29
+            text_variables_count = int(lines[text_variables_start].split()[0])
+            text_variables_lines = lines[text_variables_start + 1:text_variables_start + 1 + text_variables_count]
+            self.text_variables = {i+1: text_variables_lines[i].strip() for i in range(text_variables_count)}
+
+            # Parsing Data files
+            data_files_start = 38
+            data_files_count = int(lines[data_files_start].split()[0])
+            data_files_lines = lines[data_files_start + 1:data_files_start + 1 + data_files_count]
+            self.data_files = {i+7: data_files_lines[i].strip() for i in range(data_files_count)}
+            
+    def print_config(self):
+        print(f"Comment: {self.comment}")
+        print("Basic Change data:")
+        for key, val in self.index_dict.items():
+            print(f"index {key}: {val}: {self.data[key - 1]}")
+        print("Simulation flags:")
+        for key, val in self.flag_dict.items():
+            print(f"flag {key}: {val}: {self.flags[key - 1]}")
+        print("Text Variables:")
+        for key, val in self.text_variables.items():
+            print(f"{key}: {val}")
+        print("Data Files:")
+        for key, val in self.data_files.items():
+            print(f"{key}: {val}")
+
+    def _get_value_by_index(self, index):
+        return self.data[index - 1]
+    
+    def _get_value_by_description(self, description):
+        for key, val in self.index_dict.items():
+            if val == description:
+                return self.data[key - 1]
+            
+    def get_value(self, index):
+        if isinstance(index, int) and index in self.index_dict:
+            return self._get_value_by_index(index)
+        elif isinstance(index, str) and index in self.index_dict.values():
+            return self._get_value_by_description(index)
+        else:
+            raise ValueError("index must be a valid integer or string")
+
+    def _set_value_by_index(self, index, value):
+        self.data[index - 1] = value
+
+    def _set_value_by_description(self, description, value):
+        for key, val in self.index_dict.items():
+            if val == description:
+                self.data[key - 1] = value
+
+    def set_value(self, index, value):
+        if isinstance(index, int) and index in self.index_dict:
+            self._set_value_by_index(index, value)
+        elif isinstance(index, str) and index in self.index_dict.values():
+            self._set_value_by_description(index, value)
+        else:
+            raise ValueError("index must be an integer or string")
+
+    def _get_flag_by_index(self, index):
+        return self.flags[index - 1] == 'T'
+    
+    def _get_flag_by_description(self, description):
+        for key, val in self.flag_dict.items():
+            if val == description:
+                return self.flags[key - 1] == 'T'
+            
+    def get_flag(self, index):
+        if isinstance(index, int) and index in self.flag_dict:
+            return self._get_flag_by_index(index)
+        elif isinstance(index, str) and index in self.flag_dict.values():
+            return self._get_flag_by_description(index)
+        else:
+            raise ValueError("index must be a valid integer or string")
+
+    def _set_flag_by_index(self, index, value):
+        flags = list(self.flags)
+        flags[index - 1] = 'T' if value else 'F'
+        self.flags = ''.join(flags)
+
+    def _set_flag_by_description(self, description, value):
+        for key, val in self.flag_dict.items():
+            if val == description:
+                flags = list(self.flags)
+                flags[key - 1] = 'T' if value else 'F'
+                self.flags = ''.join(flags)
+
+    def set_flag(self, index, value):
+        if isinstance(index, int) and index in self.flag_dict:
+            self._set_flag_by_index(index, value)
+        elif isinstance(index, str) and index in self.flag_dict.values():
+            self._set_flag_by_description(index, value)
+        else:
+            raise ValueError("index must be an integer or string")
+
+    def get_text_variable(self, var_index):
+        return self.text_variables.get(var_index)
+
+    def set_text_variable(self, var_index, value):
+        if var_index in self.text_variables:
+            self.text_variables[var_index] = value
+
+    def _get_data_file_by_index(self, index):
+        return self.data_files.get(index)
+    
+    def _get_data_file_by_description(self, description):
+        for key, val in self.data_files.items():
+            if val == description:
+                return self.data_files[key]
+            
+    def get_data_file(self, index):
+        if isinstance(index, int) and index in self.data_files:
+            return self._get_data_file_by_index(index)
+        elif isinstance(index, str) and index in self.data_files.values():
+            return self._get_data_file_by_description(index)
+        else:
+            raise ValueError("index must be a valid integer or string")
+
+    def _set_data_file_by_index(self, index, value):
+        if index in self.data_files:
+            self.data_files[index] = value
+         
+    def _set_data_file_by_description(self, description, value):
+        for key, val in self.data_files.items():
+            if val == description:
+                self.data_files[key] = value
+                
+    def set_data_file(self, index, value):
+        if isinstance(index, int) and index in self.data_file_dict:
+            self._set_data_file_by_index(index, value)
+        elif isinstance(index, str) and index in self.data_file_dict.values():
+            self._set_data_file_by_description(index, value)
+        else:
+            raise ValueError(f"index must be an integer or string") 
+            
+    def get_comment(self):
+        return self.comment
+
+    def set_comment(self, comment):
+        self.comment = comment
+
+    def save_file(self, filepath):
+        with open(filepath, 'w') as file:
+            comment = self.comment + " "*(70 - len(self.comment))
+            file.write(f"SMCV2\n{comment}\n")
+            file.write("   120  # Basic Change data\n")
+
+            for i in range(0, len(self.data), 5):
+                line = ''
+                for val in self.data[i:i+5]:
+                    # Format the value in scientific notation with 5 decimal places
+                    formatted_val = f"{val:.5E}"   
+                    if val != 0:
+                        # Split the formatted value into its components: sign, digit, and exponent
+                        sign = '-' if val < 0 else ' '
+                        parts = formatted_val.split('E')
+                        digits = parts[0].replace('-', '')
+                        # remove final 0
+                        digits = digits[:-1]
+                        exponent = int(parts[1])
+
+                        # Ensure it starts with '0' after the sign
+                        if '.' in digits:
+                            digits = digits.replace('.', '')
+                        
+                        # Since we've moved the decimal place one position to the right, increment the exponent
+                        new_exponent = exponent + 1
+
+                        # Reconstruct the formatted value
+                        formatted_val = f"{sign}0.{digits}E{new_exponent:+03d}"
+                    else:
+                        # If the value is 0, we don't need to format it
+                        formatted_val = f" {val:.5E}"
+                    # Add the formatted value to the line with padding to ensure consistent spacing
+                    line += f"{formatted_val}"
+
+                # Write the formatted line to the file
+                file.write(f"{line}\n")
+
+            file.write(f"    30  # Simulation flags\n{self.flags}\n")
+            file.write(f"     {len(self.text_variables)}  # Text Variables\n")
+            for i in range(1, len(self.text_variables) + 1):
+                file.write(f"{self.text_variables[i]}\n")
+            file.write(f"    {len(self.data_files)} # Data files\n")
+            for i in range(7, 7 + len(self.data_files)):
+                # needs to be 60 long including spaces
+                data_file = self.data_files[i] + " "*(60 - len(self.data_files[i]))
+                file.write(f"{data_file}\n")
+
+    # methods for printing what each index and flag corresponds to
+    def print_index_dict(self):
+        for key, value in self.index_dict.items():
+            print(f"{key}: {value}")
+
+    def print_flag_dict(self):
+        for key, value in self.flag_dict.items():
+            print(f"{key}: {value}")
+
+    def print_index(self, index):
+        print(f"{index}: {self.index_dict[index]}")
+
+    def print_flag(self, flag):
+        print(f"{flag}: {self.flag_dict[flag]}")
+        
+    @property
+    def combined_dict(self):
+        combined_dict = {}
+        for sub_dict in self.dict.values():
+            combined_dict.update(sub_dict)
+        return combined_dict
+
+class RuntimeSwitches:
+    def __init__(self):
+        self.standard_switch_dict = {
+            'CC': 'Collimator code',
+            'DF': 'Density file segment',
+            'ES': 'Energy offset',
+            'FE': 'Energy resolution file',
+            'FZ': 'Zubal file',
+            'FI': 'Input file',
+            'FD': 'Density map base name',
+            'FS': 'Source map base name',
+            'I2': 'Image files stored as 16-bit integer matrices',
+            'IN': 'Change simind.ini value',
+            'LO': 'Photon histories before printout',
+            'LF': 'Linear sampling of polar angle for photon direction',
+            'MP': 'MPI parallel run',
+            'OR': 'Change orientation of the density map',
+            'PR': 'Start simulation at projection number',
+            'PU': 'Shift of the source in pixel units',
+            'QF': 'Quit simulation if earlier result file exists',
+            'RR': 'Random number generator seed',
+            'SC': 'Maximum number of scatter orders',
+            'SF': 'Segment for source map',
+            'TS': 'Time shift for interfile header',
+            'UA': 'Set density equal to data buffer or 1.0',
+            'WB': 'Whole-body simulation of anterior and posterior views',
+            'Xn': 'Change cross sections'
+        }
+
+        self.image_based_switch_dict = {
+            'PX': 'Pixel size of the source maps',
+            'DI': 'General direction of the source map',
+            'TH': 'Slice thickness for the images',
+            'SB': 'Start block when reading source maps',
+            '1S': 'Position of the first image to be used',
+            'NN': 'Multiplier for scaling the number of counts',
+            'IF': 'Input tumour file',
+        }
+
+        self.myocardiac_switch_dict = {
+            'A1': 'Shift of the heart in the xy-direction',
+            'A2': 'Shift of the heart in the yz-direction',
+            'A3': 'Shift of the heart in the zx-direction',
+            'L1': 'Location of defect',
+            'L2': 'Angular size of the defect',
+            'L3': 'Start from Base',
+            'L4': 'Extent of defect in axis direction',
+            'L5': 'Transgression in %',
+            'L6': 'Activity ratio in defect',
+            'M1': 'Thickness of the myocardial wall',
+            'M2': 'Thickness of the plastic wall',
+            'M3': 'Total length of the chamber',
+            'M4': 'Total diameter of the chamber',
+        }
+
+        self.multiple_spheres_switch_dict = {
+            'C1': 'Number of spheres',
+            'C2': 'Radius of spheres',
+            'C3': 'Activity of spheres',
+            'C4': 'Shift of spheres in the x-direction',
+            'C5': 'Shift of spheres in the y-direction',
+            'C6': 'Shift of spheres in the z-direction',
+        }
+        self.switches = {}
+
+        self.switch_dict = {"Standard": self.standard_switch_dict,
+                            "Image-based": self.image_based_switch_dict,
+                            "Myocardiac": self.myocardiac_switch_dict,
+                            "Multiple spheres": self.multiple_spheres_switch_dict}
+        
+    @property
+    def combined_switch_dict(self):
+        combined_dict = {}
+        for sub_dict in self.switch_dict.values():
+            combined_dict.update(sub_dict)
+        return combined_dict
+
+    def _set_switch_by_switch(self, switch, value):
+        if switch in self.combined_switch_dict:
+            self.switches[switch] = value
+        else:
+            raise ValueError(f"Switch {switch} is not recognised.")
+        
+    def _set_switch_by_name(self, name, value):
+        for switch, description in self.combined_switch_dict.items():
+            if description == name:
+                self.switches[switch] = value
+                return
+        raise ValueError(f"Switch {name} is not recognised.")
+    
+    def set_switch(self, identifier, value):
+        if identifier in self.combined_switch_dict.values():
+            self._set_switch_by_name(identifier, value)
+        elif identifier in self.combined_switch_dict.keys():
+            self._set_switch_by_switch(identifier, value)
+        else:
+            raise ValueError(f"Switch {identifier} is not recognised.")
+
+    def print_switches(self):
+        for switch, value in self.switches.items():
+            description = self.combined_switch_dict[switch]
+            print(f"{switch} ({description}): {value}")
+
+    def print_available_switches(self):
+        for switch_dict in self.switch_dict.values():
+            print(f"Switches for {switch_dict}:")
+            for switch, description in switch_dict.items():
+                print(f"{switch}: {description}")

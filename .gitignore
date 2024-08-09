@@ -9,6 +9,7 @@
 *.a00
 *.h00
 *tmp*
+*.csv
 
 # keep data files
 !data/*

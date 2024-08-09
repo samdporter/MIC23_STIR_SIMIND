@@ -5,25 +5,29 @@
 
 from sirf.STIR import (ImageData, AcquisitionData,
                        SPECTUBMatrix, AcquisitionModelUsingMatrix,
-                       MessageRedirector,)
+                       MessageRedirector, SeparableGaussianImageFilter)
 from simind import *
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-
+import pandas as pd
 import argparse
 
 parser = argparse.ArgumentParser(description='Run a simulation of a Y90 SPECT acquisition')
 parser.add_argument('--output', type=str, default="data/Y90/", help='Output directory')
 parser.add_argument('--source', type=str, default="/home/sam/data/phantom_data/SPECT", help='Source directory')
-parser.add_argument('--output_filename', type=str, default="ellipses_megp_cpd", help='Output filename')
+parser.add_argument('--output_filename', type=str, default="ellipses_megp_cpd_test", help='Output filename')
 parser.add_argument('--image_filename', type=str, default="ellipsoid_image_s.hv", help='Image filename')
 parser.add_argument('--umap_filename', type=str, default="umap_zoomed.hv", help='uMap filename')
 parser.add_argument('--measured_filename', type=str, default="peak_1_projdata__f1g1d0b0.hs", help='Measured data filename')
 
+# Y90 specific parameters
+parser.add_argument('--blur_image', action='store_true', help='Blur the image')
+parser.add_argument('--blur_fwhm', type=float, default=6.61, help='Sigma for the Gaussian blur') # using gaussians estimated from Y90 data with GATE  /home/sam/working/simulated_data/data/data.ipynb
+
 # SIMIND parameters
 parser.add_argument('--total_activity', type=float, default=187, help='Total activity in MBq')
 parser.add_argument('--time_per_projection', type=int, default=20, help='Time per projection in seconds')
-parser.add_argument('--photon_multiplier', type=int, default=10, help='Photon multiplier')
+parser.add_argument('--photon_multiplier', type=int, default=0.1, help='Photon multiplier')
 parser.add_argument('--photopeak_energy', type=int, default=150, help='Photopeak energy in keV')
 parser.add_argument('--window_lower', type=int, default=75, help='Lower window in keV')
 parser.add_argument('--window_upper', type=int, default=225, help='Upper window in keV')
@@ -33,6 +37,9 @@ parser.add_argument('--kev_per_channel', type=int, default=5, help='keV per chan
 parser.add_argument('--num_energy_spectra_channels', type=int, default=400, help='Number of energy spectra channels')
 
 args = parser.parse_args()
+base_savename = os.path.join(args.output, f"{args.output_filename}_nn{args.photon_multiplier}_blur{args.blur_image}")
+# save the arguments to a file using pandas
+pd.DataFrame(vars(args), index=[0]).to_csv(f"{base_savename}_args.csv")
 
 # msg = MessageRedirector()
 # AcquisitionData.set_storage_scheme('memory')
@@ -55,6 +62,11 @@ num_energy_spectra_channels = args.num_energy_spectra_channels
 image = ImageData(os.path.join(args.source, args.image_filename))
 mu_map = ImageData(os.path.join(args.source, args.umap_filename))
 measured_data = AcquisitionData(os.path.join(args.source, args.measured_filename))
+
+if args.blur_image:
+    spect_psf = SeparableGaussianImageFilter()
+    spect_psf.set_fwhms((args.blur_fwhm, args.blur_fwhm, args.blur_fwhm))
+    spect_psf.apply(image)
 
 # In[49]:
 
@@ -88,9 +100,9 @@ simind_total = simulator.get_output_total()
 simind_scatter = simulator.get_output_scatter()
 simind_true = simind_total - simind_scatter
 
-simind_total.write(os.path.join(args.output, f"{args.output_filename}_total.hs"))
-simind_scatter.write(os.path.join(args.output, f"{args.output_filename}_scatter.hs"))
-simind_true.write(os.path.join(args.output, f"{args.output_filename}_true.hs"))
+simind_total.write(base_savename + "_total.hs")
+simind_scatter.write(base_savename + "_scatter.hs")
+simind_true.write(base_savename + "_true.hs")
                   
 # In[53]:
 acq_matrix = SPECTUBMatrix()
@@ -127,6 +139,15 @@ print("\n")
 print(f"measured total counts: {measured_data.sum()}")
 print(f"stir total counts: {stir_forward_projection.sum()}")
 
+# save the scaling factors and counts to a file using pandas
+pd.DataFrame({"scaling_factor_stir": [scaling_factor_stir],
+                "scaling_factor_measured": [scaling_factor_measured],
+                "simind_total": [simind_total.sum()],
+                "simind_true": [simind_true.sum()],
+                "simind_scatter": [simind_scatter.sum()],
+                "measured": [measured_data.sum()],
+                "stir_forward_projection": [stir_forward_projection.sum()]}).to_csv(f"{base_savename}_counts.csv")
+
 # In[64]:
 
 # Define consistent font size and colormap
@@ -135,7 +156,7 @@ colormap = 'viridis'
 axial_slice = 55
 
 # Set the maximum intensity for color normalization
-vmax = 100#max(measured_data.max(), simind_total.max(), stir_forward_projection.max())
+vmax = max(measured_data.max(), simind_total.max(), stir_forward_projection.max())
 
 data_list = [
     ((simind_total).as_array(), "SIMIND total"),
@@ -145,7 +166,7 @@ data_list = [
     ((simind_scatter).as_array(), "SIMIND scatter"),
 ]
 
-divisors = [1/scaling_factor_measured, 1, 1/scaling_factor_measured, 1/scaling_factor_stir, 1/scaling_factor_measured]
+divisors = [1, 1, 1, 1/scaling_factor_stir, 1]
 
 # Create a figure and a GridSpec with 3 rows
 fig = plt.figure(figsize=(len(data_list)*4,7*2,))
@@ -190,7 +211,7 @@ ax_line.set_xlim(0, 128)
 
 # Adjust spacing and layout
 plt.tight_layout()
-plt.savefig(os.path.join(args.output, f"{args.output_filename}_axial.png"))
+plt.savefig(base_savename + "_axial.png")
 
 # In[62]:
 
@@ -198,9 +219,6 @@ plt.savefig(os.path.join(args.output, f"{args.output_filename}_axial.png"))
 font_size = 14
 colormap = 'viridis'
 coronal_slice = 55
-
-# Set the maximum intensity for color normalization
-vmax = 100#max(measured_data.max(), simind_total.max(), stir_forward_projection.max())
 
 data_list = [
     ((simind_total).as_array(), "SIMIND total"),
@@ -253,5 +271,5 @@ ax_line.set_xlim(0, 128)
 
 # Adjust spacing and layout
 plt.tight_layout()
-plt.savefig(os.path.join(args.output, f"{args.output_filename}_coronal.png"))
+plt.savefig(base_savename + "_coronal.png")
 
