@@ -1,4 +1,5 @@
-# STIR user group meeting code
+# STIR user group meeting code that is slowly morphing into a SIMIND-STIR connection repo.
 
-### I've changes this a bit since in order to test more stuff
-### Added a script and some different data files so may not work perfectly but I'll try and make sure that it will
+## This will eventually be megrged with https://github.com/samdporter/STIR-SIMIND-Connection
+
+

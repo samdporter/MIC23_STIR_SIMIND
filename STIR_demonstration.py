@@ -6,7 +6,7 @@
 from sirf.STIR import (ImageData, AcquisitionData,
                        SPECTUBMatrix, AcquisitionModelUsingMatrix,
                        MessageRedirector,)
-from simind import *
+from src.simind import *
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import pandas as pd
@@ -22,20 +22,21 @@ parser = argparse.ArgumentParser(description='Run a simulation using SIMIND and 
 
 parser.add_argument('--total_activity', type=float, default=258.423, help='Total activity in MBq')
 parser.add_argument('--time_per_projection', type=int, default=43, help='Time per projection in seconds')
-parser.add_argument('--photon_multiplier', type=int, default=0.1, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
-parser.add_argument('--photopeak_energy', type=int, default=208, help='Photopeak energy in keV')
-parser.add_argument('--window_lower', type=int, default=187.56, help='Lower window in keV')
-parser.add_argument('--window_upper', type=int, default=229.24, help='Upper window in keV')
-parser.add_argument('--source_type', type=str, default='Lu177', help='Source type')
+parser.add_argument('--photon_multiplier', type=float, default=0.001, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
+parser.add_argument('--photopeak_energy', type=float, default=208, help='Photopeak energy in keV')
+parser.add_argument('--window_lower', type=float, default=187.56, help='Lower window in keV')
+parser.add_argument('--window_upper', type=float, default=229.24, help='Upper window in keV')
+parser.add_argument('--source_type', type=str, default='lu177', help='Source type')
 parser.add_argument('--collimator', type=str, default='G8-MEGP', help='Collimator')
-parser.add_argument('--kev_per_channel', type=int, default=10, help='keV per channel')
-parser.add_argument('--max_energy', type=int, default=498.3, help='Max energy in keV')
+parser.add_argument('--kev_per_channel', type=float, default=10., help='keV per channel')
+parser.add_argument('--max_energy', type=float, default=498.3, help='Max energy in keV')
 parser.add_argument('--mu_map_path', type=str, default='data/Lu177/registered_CTAC.hv', help='Path to mu map')
 parser.add_argument('--image_path', type=str, default='data/Lu177/osem_reconstruction_postfilter_555.hv', help='Path to image')
 parser.add_argument('--measured_data_path', type=str, default='data/Lu177/SPECTCT_NEMA_128_EM001_DS_en_1_Lu177_EM.hdr', help='Path to measured data')
 parser.add_argument('--measured_additive', type=str, default='/home/sam/working/STIR_users_MIC2023/data/Lu177/STIR_TEW.hs', help='Path to measured additive')
 parser.add_argument('--output_dir', type=str, default='simind_output', help='Output directory')
-parser.add_argument('--input_smc_file_path', type=str, default='input.smc', help='Path to input smc file')
+parser.add_argument('--output_prefix', type=str, default='output', help='Output prefix')
+parser.add_argument('--input_smc_file_path', type=str, default='input/input.smc', help='Path to input smc file')
 parser.add_argument('--scoring_routine', type=int, default=1, help='Scoring routine')
 parser.add_argument('--collimator_routine', type=int, default=1, help='Collimator routine')
 parser.add_argument('--photon_direction', type=int, default=3, help='Photon direction')
@@ -53,17 +54,19 @@ def get_acquisition_model(measured_data, additive_data, image, mu_map_stir):
     acq_matrix.set_attenuation_image(mu_map_stir)
     acq_matrix.set_keep_all_views_in_cache(True)
     acq_matrix.set_resolution_model(1.81534, 0.02148, False)
-    acq_model = AcquisitionModelUsingMatrix(acq_matrix)
     try:
         acq_model.set_additive(additive_data)
     except Exception as e:
         print(e)
         print("Could not set additive data")
+    acq_model = AcquisitionModelUsingMatrix(acq_matrix)
     acq_model.set_up(measured_data, image)
     return acq_model
 
+# In[26]:
+
 def main(args):
-    # In[26]:
+
 
     image = ImageData(args.image_path)
     mu_map = ImageData(args.mu_map_path)
@@ -73,7 +76,7 @@ def main(args):
     # In[27]:
 
     ## Unfortunately this is necessary due to a bug in STIR
-
+    # Only for the STIR reconstruction
     mu_map_stir = mu_map.clone()
     mu_map_stir.fill(np.flip(mu_map.as_array(), axis=2))
 
@@ -83,8 +86,8 @@ def main(args):
     os.chdir("/home/sam/working/STIR_users_MIC2023")
     # set up the simulator
     simulator = SimindSimulator(template_smc_file_path=args.input_smc_file_path,
-                                output_dir=args.output_dir, source=image,
-                                mu_map=mu_map_stir, template_sinogram=measured_data)
+                                output_dir=args.output_dir, output_prefix= args.output_prefix,
+                                source=image, mu_map=mu_map, template_sinogram=measured_data)
 
 
     # Set the parameters for the simulation
@@ -105,10 +108,11 @@ def main(args):
     simulator.add_index("energy_resolution", 9.5) # percent
     simulator.add_index("intrinsic_resolution", 0.31) # cm
 
+
     # Set the runtime switches
     simulator.add_runtime_switch("CC", args.collimator) # which collimator
     simulator.add_runtime_switch("NN", args.photon_multiplier) # multiplier for number of photons simulated
-    simulator.add_runtime_switch("FI", args.source_type) # source type (Y90 in this case)
+    simulator.add_runtime_switch("FI", args.source_type) # source type
 
     simulator.run_simulation()
 
@@ -146,7 +150,7 @@ def main(args):
         "measured_additive": [measured_additive.sum()]
     })
 
-    counts.to_csv(os.path.join(args.output_dir, "counts_" + base_output_filename + ".csv"))
+    counts.to_csv(os.path.join(args.output_dir, base_output_filename + ".csv"))
 
     data_list = [
         ((simind_total), "simind total"),
@@ -156,6 +160,8 @@ def main(args):
         ((stir_forward_projection), "stir forward"),
         ((measured_additive), "measured additive")
     ]
+
+    data_list = [(data.as_array(), title) for data, title in data_list]
 
     axial_slice = 55
 
