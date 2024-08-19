@@ -10,7 +10,7 @@ from sirf.STIR import AcquisitionData, ImageData
 
 ### Should this be more object oriented? ###
 
-def parse_interfile(template_sinogram):
+def parse_sinogram(template_sinogram):
 
     tmp = template_sinogram.write('tmp.hs')
     values = parse_interfile('tmp.hs')
@@ -260,7 +260,7 @@ class Converter:
                 return prefix + line, dir_switch
         
         if "Radius" in line:
-            res =  f"Radius := {float(line.split()[2])*10}"
+            res =  f"Radius := {float(line.split()[3])*10}"
         elif "!number format := short float" in line:
             res = "!number format := float"
         elif "image duration" in line:
@@ -464,8 +464,6 @@ class SimindSimulator:
             os.makedirs(output_dir)
         self.output_dir= output_dir
         self.output_filepath = os.path.join(output_dir, output_prefix)
-        # ensure output path is empty
-        assert len(os.listdir(output_dir)) == 0, "Output directory must be empty"
 
         self.config = SimulationConfig(template_smc_file_path)
         self.runtime_switches = RuntimeSwitches()
@@ -695,11 +693,9 @@ class SimindSimulator:
             
         mu_map_arr.astype(np.uint16).tofile('tmp_density.dmi')
         self.config.set_data_file(11, "tmp_density")
-        print(self.config.get_data_file(11))
             
         self.source.as_array().astype(np.float16).tofile('tmp_source.smi')
         self.config.set_data_file(12, "tmp_source")
-        print(self.config.get_data_file(12))
 
         # if linux os update path strings
         if os.name == 'posix':
@@ -711,7 +707,6 @@ class SimindSimulator:
 
         command = ["simind", self.smc_file_path, self.output_filepath]
         # add switches
-        print(self.runtime_switches.switches)
         switches = ""
         for key, value in self.runtime_switches.switches.items():
             switches+=(f'/{key}:{str(value)}')
@@ -740,19 +735,20 @@ class SimindSimulator:
         """Get output files from simind simulation"""
         # convert to .hs files
         
-        if self.output is not None:
+        if self.output is not None and len(self.output) > 0:
             return self.output
         
         converter = Converter()
+        output_strings = ["air", "sca", "tot", "pri"]
         if not self.files_converted:
             # find all files with output directory ending in .h00 
-            files = [f for f in os.listdir(self.output_dir) if f.endswith('.h00')]
+            files = [f for f in os.listdir(self.output_dir) if f.endswith('.h00') and any(s in f for s in output_strings)]
             for f in files:
                 converter.convert(os.path.join(self.output_dir, f))
             self.files_converted = True
         # if output dir is not empty, convert files
         # find all files with output directory ending in .hs
-        files = [f for f in os.listdir(self.output_dir) if f.endswith('.hs')]
+        files = [f for f in os.listdir(self.output_dir) if f.endswith('.hs') and any(s in f for s in output_strings)]
         # sort converted files by number (w{n}.hs) and then tot_w{n}.hs, sca_w{n}.hs, air_w{n}.hs
         # files look like {output_filename}_{tot/sca/air}_w{n}.hs
         files.sort(key=lambda f: int(f.split('_')[-1].split('.')[0][1:]))
