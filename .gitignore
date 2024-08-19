@@ -26,4 +26,11 @@ __pycache__/
 # obsolete
 obsolete/*
 
+# unwanted simind output files
+simind.s0*
+simind.s1*
+simind.res
+scattwin.win
+output.smc
+
 
