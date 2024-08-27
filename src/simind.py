@@ -697,8 +697,10 @@ class SimindSimulator:
         self.check_images_match(self.source, self.mu_map)
         self.check_square_pixels_and_image(self.source)
         self.check_square_pixels_and_image(self.mu_map)
-
         
+        cwd = os.getcwd()
+        os.chdir(self.output_dir)
+
         if self.config.get_flag(11):
             mu_map_arr = self.mu_map.as_array()
             mu_map_arr = attenuation_to_density(mu_map_arr, self.config.get_value('photon_energy'), self.input_dir)*1000
@@ -743,6 +745,8 @@ class SimindSimulator:
             for f in os.listdir(self.input_dir):
                 if f.endswith('.h00') or f.endswith('.a00'):
                     os.rename(os.path.join(self.input_dir, f), os.path.join(self.output_dir, f))
+                    
+        os.chdir(cwd)
 
     def get_output(self):
         """Get output files from simind simulation"""
