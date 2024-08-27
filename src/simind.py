@@ -464,14 +464,17 @@ class SimindSimulator:
 
         # Convert the template file path to a Path object
         self.template_smc_file_path = Path(template_smc_file_path)
+        self.template_smc_file_path = self.template_smc_file_path.resolve()
         self.input_dir = self.template_smc_file_path.parent
 
         # Define the path for the output SMC file
         self.smc_file_path = self.input_dir / "simind.smc"
+        self.smc_file_path = self.smc_file_path.resolve()
 
         # Ensure the output directory exists, create it if not
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir = self.output_dir.resolve()
 
         # Define the path for the output file with the given prefix
         self.output_filepath = self.output_dir / output_prefix
@@ -519,7 +522,7 @@ class SimindSimulator:
 
     # output filename is scattwin.win in the same dir as the template smc file
     def set_windows(self, lower_bounds, upper_bounds, scatter_orders):
-        output_filename = os.path.join(self.input_dir, "scattwin.win")
+        output_filename = os.path.join(self.output_dir, "scattwin.win")
         """Sets energy windows for simind simulation"""
         create_window_file(lower_bounds, upper_bounds, scatter_orders, 
                            output_filename)
@@ -716,14 +719,7 @@ class SimindSimulator:
         # write smc file
         self.config.save_file(self.output_filepath)
 
-        # if linux os update path strings
-        if os.name == 'posix':
-            print("Updating path strings for linux")
-            output_filepath = self.update_linux_path_strings(self.output_filepath)
-        else:
-            output_filepath = self.output_filepath
-
-        command = ["simind", output_filepath, output_filepath]
+        command = ["simind", self.output_filepath.name, self.output_filepath.name]
 
         # add switches
         switches = ""
@@ -755,7 +751,7 @@ class SimindSimulator:
         if self.output is not None and len(self.output) > 0:
             return self.output
         converter = Converter()
-        output_strings = ["air", "sca", "tot", "pri"]
+        output_strings = ["_air_w", "_sca_w", "_tot_w", "_pri_w"]
         if not self.files_converted:
             # find all files with output directory ending in .h00 
             files = [f for f in os.listdir(self.output_dir) if f.endswith('.h00') and any(s in f for s in output_strings)]
@@ -772,7 +768,7 @@ class SimindSimulator:
         files.sort(key=lambda f: int(f.split('_')[-1].split('.')[0][1:]))
         # return dictionary of files with keys tot, sca, air and w{n}
         output = {}
-        for f in files[:-1]:
+        for f in files:
             f_split = f.split('_')
             scat_type = f_split[-2]
             window = f_split[-1].split('.')[0]

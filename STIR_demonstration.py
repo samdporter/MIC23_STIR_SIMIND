@@ -125,7 +125,6 @@ def main(args):
     simind_scatter.write(os.path.join(args.output_dir, "simind_scatter_" + base_output_filename))
     simind_true.write(os.path.join(args.output_dir, "simind_true_" + base_output_filename))
 
-
     acq_model = get_acquisition_model(measured_data, measured_additive, image, mu_map_stir)
     stir_forward_projection = acq_model.forward(image)
 
@@ -166,7 +165,6 @@ def main(args):
     axial_slice = 55
 
     vmax = max([data[0][axial_slice].max() for data, _ in data_list])
-
 
     # In[48]:
 
@@ -219,7 +217,6 @@ def main(args):
     plt.tight_layout()
     plt.savefig(os.path.join(args.output_dir, "comparison_" + base_output_filename + ".png"))
     plt.close()
-
 
     # In[ ]:
 

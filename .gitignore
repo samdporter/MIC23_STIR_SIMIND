@@ -6,10 +6,14 @@
 *.hv
 *.ahv
 *.v
+!data/*.hv
+!data/*.ahv
+!data/*.v
 *.a00
 *.h00
 *tmp*
 *.csv
+simind_output/*
 
 # keep data files
 !data/*
