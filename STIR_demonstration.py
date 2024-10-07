@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[24]:
-
 from sirf.STIR import (ImageData, AcquisitionData,
                        SPECTUBMatrix, AcquisitionModelUsingMatrix,
                        MessageRedirector,)
@@ -16,13 +14,11 @@ import argparse
 msg = MessageRedirector()
 # AcquisitionData.set_storage_scheme('memory')
 
-# In[25]:
-
 parser = argparse.ArgumentParser(description='Run a simulation using SIMIND and STIR')
 
 parser.add_argument('--total_activity', type=float, default=258.423, help='Total activity in MBq')
 parser.add_argument('--time_per_projection', type=int, default=43, help='Time per projection in seconds')
-parser.add_argument('--photon_multiplier', type=float, default=0.001, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
+parser.add_argument('--photon_multiplier', type=float, default=0.01, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
 parser.add_argument('--photopeak_energy', type=float, default=208, help='Photopeak energy in keV')
 parser.add_argument('--window_lower', type=float, default=187.56, help='Lower window in keV')
 parser.add_argument('--window_upper', type=float, default=229.24, help='Upper window in keV')
@@ -38,7 +34,7 @@ parser.add_argument('--output_dir', type=str, default='simind_output', help='Out
 parser.add_argument('--output_prefix', type=str, default='output', help='Output prefix')
 parser.add_argument('--input_smc_file_path', type=str, default='input/input.smc', help='Path to input smc file')
 parser.add_argument('--scoring_routine', type=int, default=1, help='Scoring routine')
-parser.add_argument('--collimator_routine', type=int, default=1, help='Collimator routine')
+parser.add_argument('--collimator_routine', type=int, default=0, help='Collimator routine')
 parser.add_argument('--photon_direction', type=int, default=3, help='Photon direction')
 parser.add_argument('--crystal_thickness', type=float, default=7.25, help='Crystal thickness in mm')
 parser.add_argument('--crystal_half_length_radius', type=float, default=393.6/2, help='Crystal half length radius in mm')
@@ -63,24 +59,18 @@ def get_acquisition_model(measured_data, additive_data, image, mu_map_stir):
     acq_model.set_up(measured_data, image)
     return acq_model
 
-# In[26]:
 
 def main(args):
-
 
     image = ImageData(args.image_path)
     mu_map = ImageData(args.mu_map_path)
     measured_data = AcquisitionData(args.measured_data_path)
     measured_additive = AcquisitionData(args.measured_additive)
 
-    # In[27]:
-
     ## Unfortunately this is necessary due to a bug in STIR
     # Only for the STIR reconstruction
     mu_map_stir = mu_map.clone()
     mu_map_stir.fill(np.flip(mu_map.as_array(), axis=2))
-
-    # In[29]:
 
 
     os.chdir("/home/sam/working/STIR_users_MIC2023")
@@ -121,9 +111,6 @@ def main(args):
     simind_true = simind_total - simind_scatter
 
     base_output_filename = f"NN{args.photon_multiplier}_CC{args.collimator}_FI{args.source_type}_"
-    simind_total.write(os.path.join(args.output_dir, "simind_total_" + base_output_filename))
-    simind_scatter.write(os.path.join(args.output_dir, "simind_scatter_" + base_output_filename))
-    simind_true.write(os.path.join(args.output_dir, "simind_true_" + base_output_filename))
 
     acq_model = get_acquisition_model(measured_data, measured_additive, image, mu_map_stir)
     stir_forward_projection = acq_model.forward(image)
@@ -136,8 +123,6 @@ def main(args):
     print(f"measured total counts: {measured_data.sum()}")
     print(f"stir true counts: {stir_forward_projection.sum()}")
     print(f"measured additive counts: {measured_additive.sum()}")
-
-    # In[45]:
 
     # save counts to csv
     counts = pd.DataFrame({
@@ -162,11 +147,10 @@ def main(args):
 
     data_list = [(data.as_array(), title) for data, title in data_list]
 
-    axial_slice = 55
+    axial_slice = 66
 
     vmax = max([data[0][axial_slice].max() for data, _ in data_list])
 
-    # In[48]:
 
     # Define consistent font size and colormap
     font_size = 14
@@ -268,9 +252,6 @@ def main(args):
     plt.tight_layout()
     plt.savefig(os.path.join(args.output_dir, "comparison_coronal_" + base_output_filename + ".png"))
     plt.close()
-
-
-    # In[ ]:
 
 if __name__ == '__main__':
     
