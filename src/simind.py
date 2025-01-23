@@ -780,7 +780,7 @@ class SimindSimulator:
             else:
                 converter.convert_sinogram_parameter(output[scat_type + "_" + window], "scaling factor (mm/pixel) [1]", self.source.voxel_sizes()[1])
                 converter.convert_sinogram_parameter(output[scat_type + "_" + window], "scaling factor (mm/pixel) [2]", self.source.voxel_sizes()[2])
-                converter.convert_sinogram_parameter(output[scat_type + "_" + window], "Radius", float(self.config.get_value("distance_to_detector"))*10)
+                converter.convert_sinogram_parameter(output[scat_type + "_" + window], "Radius", float(self.config.get_value("height_to_detector_surface"))*10)
         
         self.output = output
         
