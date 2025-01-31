@@ -221,9 +221,9 @@ def extract_attributes_from_stir_headerfile(filename: str):
                         warnings.warn("Non-circle orbit detected. There are a number of ways to do this so please handle this case manually using SIMIND Index 42.", UserWarning) 
                     else:
                         attributes['orbit'] = "Circular"
-                    attributes['distance_to_detector'] = mean_value
+                    attributes['height_to_detector_surface'] = mean_value
                 else:  # Single value case
-                    attributes['distance_to_detector'] = float(tmp)
+                    attributes['height_to_detector_surface'] = float(tmp)
             elif "energy window lower level[1] :=" in line:
                 attributes['energy_window_lower'] = float(line.split(":=")[1].strip())
             elif "energy window upper level[1] :=" in line:
