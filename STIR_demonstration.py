@@ -4,10 +4,12 @@
 from sirf.STIR import (ImageData, AcquisitionData,
                        SPECTUBMatrix, AcquisitionModelUsingMatrix,
                        MessageRedirector,)
-from src.simind import *
+from src.simulator import SimindSimulator
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import pandas as pd
+import numpy as np
+import os
 
 import argparse
 
@@ -18,7 +20,7 @@ parser = argparse.ArgumentParser(description='Run a simulation using SIMIND and 
 
 parser.add_argument('--total_activity', type=float, default=258.423, help='Total activity in MBq')
 parser.add_argument('--time_per_projection', type=int, default=43, help='Time per projection in seconds')
-parser.add_argument('--photon_multiplier', type=float, default=0.01, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
+parser.add_argument('--photon_multiplier', type=float, default=10, help='Number of photons simulated is calculated based on source map. This number multiplies the calculated number of photons')
 parser.add_argument('--photopeak_energy', type=float, default=208, help='Photopeak energy in keV')
 parser.add_argument('--window_lower', type=float, default=187.56, help='Lower window in keV')
 parser.add_argument('--window_upper', type=float, default=229.24, help='Upper window in keV')
@@ -27,19 +29,21 @@ parser.add_argument('--collimator', type=str, default='G8-MEGP', help='Collimato
 parser.add_argument('--kev_per_channel', type=float, default=10., help='keV per channel')
 parser.add_argument('--max_energy', type=float, default=498.3, help='Max energy in keV')
 parser.add_argument('--mu_map_path', type=str, default='data/Lu177/registered_CTAC.hv', help='Path to mu map')
-parser.add_argument('--image_path', type=str, default='data/Lu177/osem_reconstruction_postfilter_555.hv', help='Path to image')
+parser.add_argument('--image_path', type=str, default='data/Lu177/osem_image.hv', help='Path to image')
 parser.add_argument('--measured_data_path', type=str, default='data/Lu177/SPECTCT_NEMA_128_EM001_DS_en_1_Lu177_EM.hdr', help='Path to measured data')
-parser.add_argument('--measured_additive', type=str, default='/home/sam/working/STIR_users_MIC2023/data/Lu177/STIR_TEW.hs', help='Path to measured additive')
+parser.add_argument('--measured_additive_path', type=str, default='data/Lu177/STIR_TEW.hs', help='Path to measured additive')
 parser.add_argument('--output_dir', type=str, default='simind_output', help='Output directory')
 parser.add_argument('--output_prefix', type=str, default='output', help='Output prefix')
 parser.add_argument('--input_smc_file_path', type=str, default='input/input.smc', help='Path to input smc file')
 parser.add_argument('--scoring_routine', type=int, default=1, help='Scoring routine')
-parser.add_argument('--collimator_routine', type=int, default=0, help='Collimator routine')
+parser.add_argument('--collimator_routine', type=int, default=1, help='Collimator routine')
 parser.add_argument('--photon_direction', type=int, default=3, help='Photon direction')
 parser.add_argument('--crystal_thickness', type=float, default=7.25, help='Crystal thickness in mm')
 parser.add_argument('--crystal_half_length_radius', type=float, default=393.6/2, help='Crystal half length radius in mm')
 parser.add_argument('--crystal_half_width', type=float, default=511.7/2, help='Crystal half width in mm')
 parser.add_argument('--flag_11', type=bool, default=True, help='Flag 11 - use collimator')
+parser.add_argument('--half_life', type=float, default=6.647*24, help='Half life of the isotope in hours')
+parser.add_argument('--axial_slice', type=int, default=65, help='Axial slice to plot')
 
 args = parser.parse_args()
 
@@ -49,13 +53,13 @@ def get_acquisition_model(measured_data, additive_data, image, mu_map_stir):
     acq_matrix = SPECTUBMatrix()
     acq_matrix.set_attenuation_image(mu_map_stir)
     acq_matrix.set_keep_all_views_in_cache(True)
-    acq_matrix.set_resolution_model(1.81534, 0.02148, False)
+    acq_matrix.set_resolution_model(0.9323, 0.03, False) 
+    acq_model = AcquisitionModelUsingMatrix(acq_matrix)
     try:
-        acq_model.set_additive(additive_data)
+        acq_model.set_additive_term(additive_data)
     except Exception as e:
         print(e)
         print("Could not set additive data")
-    acq_model = AcquisitionModelUsingMatrix(acq_matrix)
     acq_model.set_up(measured_data, image)
     return acq_model
 
@@ -65,7 +69,7 @@ def main(args):
     image = ImageData(args.image_path)
     mu_map = ImageData(args.mu_map_path)
     measured_data = AcquisitionData(args.measured_data_path)
-    measured_additive = AcquisitionData(args.measured_additive)
+    measured_additive = AcquisitionData(args.measured_additive_path)
 
     ## Unfortunately this is necessary due to a bug in STIR
     # Only for the STIR reconstruction
@@ -97,6 +101,7 @@ def main(args):
     # resolutin
     simulator.add_index("energy_resolution", 9.5) # percent
     simulator.add_index("intrinsic_resolution", 0.31) # cm
+    simulator.add_index("cutoff_energy_terminate_photon_history", args.window_lower*0.5)  # keV
 
 
     # Set the runtime switches
@@ -112,8 +117,8 @@ def main(args):
 
     base_output_filename = f"NN{args.photon_multiplier}_CC{args.collimator}_FI{args.source_type}_"
 
-    acq_model = get_acquisition_model(measured_data, measured_additive, image, mu_map_stir)
-    stir_forward_projection = acq_model.forward(image)
+    #acq_model = get_acquisition_model(measured_data, (measured_data-measured_additive).maximum(0), image, mu_map_stir)
+    #stir_forward_projection = acq_model.forward(image)
 
     print(f"simind total counts: {simind_total.sum()}")
     print(f"simind true counts: {simind_true.sum()}")
@@ -121,7 +126,7 @@ def main(args):
     print("\n")
     print("\n")
     print(f"measured total counts: {measured_data.sum()}")
-    print(f"stir true counts: {stir_forward_projection.sum()}")
+    #print(f"stir true counts: {stir_forward_projection.sum()}")
     print(f"measured additive counts: {measured_additive.sum()}")
 
     # save counts to csv
@@ -130,7 +135,7 @@ def main(args):
         "simind_true": [simind_true.sum()],
         "simind_scatter": [simind_scatter.sum()],
         "measured": [measured_data.sum()],
-        "stir_forward": [stir_forward_projection.sum()],
+        #"stir_forward": [stir_forward_projection.sum()],
         "measured_additive": [measured_additive.sum()]
     })
 
@@ -138,16 +143,17 @@ def main(args):
 
     data_list = [
         ((simind_total), "simind total"),
-        ((simind_true), "simind true"),
-        ((simind_scatter), "simind scatter"),
         ((measured_data), "measured"),
-        ((stir_forward_projection), "stir forward"),
-        ((measured_additive), "measured additive")
+        ((simind_true), "simind true"),
+        ((measured_data-measured_additive).maximum(0), "measured scatter corrected"),
+        ((simind_scatter), "simind scatter"),
+        #((stir_forward_projection), "stir forward"),
+        ((measured_additive), "TEW scatter")
     ]
 
     data_list = [(data.as_array(), title) for data, title in data_list]
 
-    axial_slice = 66
+    axial_slice = args.axial_slice
 
     vmax = max([data[0][axial_slice].max() for data, _ in data_list])
 

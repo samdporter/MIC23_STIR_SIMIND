@@ -42,4 +42,7 @@ simind.res
 scattwin.win
 output.smc
 
+# don't include simind program
+simind
+
 

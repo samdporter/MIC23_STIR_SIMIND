@@ -1,0 +1,11 @@
+python STIR_demonstration.py --total_activity=187 --time_per_projection=40 \
+--photon_multiplier=1000 --photopeak_energy=150 --window_lower=75 --window_upper=225 \
+--source_type="y90_frey" --collimator="ma-megp" --kev_per_channel=25 \
+--max_energy=2180 --mu_map_path="data/Y90/umap_zoomed.hv" \
+--image_path="data/Y90/ellipsoid_image_s.hv" \
+--measured_data_path="data/Y90/peak_1_projdata__f1g1d0b0.hs" \
+--measured_additive_path="data/Y90/simind_scatter_ellipses_megp_cpd.hs" \
+--output_dir="simind_output" --input_smc_file_path="input/input.smc" \
+--scoring_routine=1 --collimator_routine=1 --photon_direction=3 --crystal_thickness=15.9 \
+--crystal_half_length_radius=235 --crystal_half_width=285 \
+--half_life=64.6 --axial_slice=56
