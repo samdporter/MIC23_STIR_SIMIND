@@ -1,3 +1,9 @@
+### This file contains functions to convert Hounsfield Units (HU) to attenuation coefficients and densities.
+### The functions are based on the bilinear model for attenuation coefficients and densities.
+### I wouldn't necessarily trust all this implicitly, but it's a good starting point.
+
+### Author: Sam Porter
+
 import numpy as np
 import os
 

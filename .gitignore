@@ -9,6 +9,11 @@
 !data/*.hv
 !data/*.ahv
 !data/*.v
+!data/Lu177/STIR_TEW*
+!data/Lu177/SPECTCT_NEMA_128_EM001*
+!data/Tc99m/osem_reconstruction_postfilter_555*
+!data/Tc99m/peak_stir.s
+!data/Tc99m/peak_stir_en_1_Primary.hdr
 *.a00
 *.h00
 *tmp*
@@ -36,5 +41,8 @@ simind.s1*
 simind.res
 scattwin.win
 output.smc
+
+# don't include simind program
+simind
 
 
