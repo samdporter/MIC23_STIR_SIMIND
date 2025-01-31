@@ -6,4 +6,7 @@
 
 ## .smc and .atn files must be in the same folder (atm input)
 
-
+# ToDo:
+- Update to use non-circular orbits using .cor file as template for SIRF
+- Update to allow different kVp for attenuation corrections
+- Loooots of documentation (READMEs + comments + docstrings)
