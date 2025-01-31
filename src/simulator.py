@@ -247,7 +247,10 @@ class SimindSimulator:
         self.add_index(30, rotation_switch)
         self.add_index(41, start_angle)
 
-        self.template_sinogram = template_sinogram.clone()
+        if isinstance(template_sinogram, str):
+            self.template_sinogram = AcquisitionData(template_sinogram)
+        elif isinstance(template_sinogram, AcquisitionData):
+            self.template_sinogram = template_sinogram.clone()
 
     @staticmethod
     def update_linux_path_strings(path):
