@@ -215,7 +215,7 @@ class SimindSimulator:
         
         # start angles in simind and STIR are opposite
         start_angle+=180
-        if start_angle > 360:
+        if start_angle >= 360:
             start_angle -= 360
         
         return rotation_switch, start_angle

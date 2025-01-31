@@ -58,7 +58,11 @@ class Converter:
             res = line
             dir_switch = -1
         elif "start angle" in line:
-            res =  f"start angle := {dir_switch*float(line.split()[3]) + 180}"
+            # convert to STIR format. If angle +180 > 360, then -360
+            angle = dir_switch*float(line.split()[3]) + 180
+            if angle >= 360:
+                angle -= 360
+            res =  f"start angle := {angle}"
         elif "!name of data file" in line:
             file = Path(line.split()[5])
             # only filename plus extension
