@@ -226,7 +226,7 @@ class SimindSimulator:
         This will overwrite any other settings with those found in the template sinogram.
         Settings include:
         - number of projections
-        - distance to detector
+        - height to detector surface
         - rotation direction
         - start angle (converted to simind geometry)
         
@@ -240,7 +240,7 @@ class SimindSimulator:
             raise TypeError('template_sinogram must be a string or SIRF AcquisitionData object')
     
         self.add_index(29, attribute_dict['number_of_projections'])
-        self.add_index(12, attribute_dict['distance_to_detector']/10) # convert to cm
+        self.add_index(12, attribute_dict['height_to_detector_surface']/10) # convert to cm
         rotation_switch, start_angle = self.set_rotation_in_stir_geometry(attribute_dict['extent_of_rotation'], 
                                                                           attribute_dict['start_angle'],
                                                                           attribute_dict['direction_of_rotation'],)
@@ -372,7 +372,7 @@ class SimindSimulator:
             else:
                 converter.convert_sinogram_parameter(output[scat_type + "_" + window], "scaling factor (mm/pixel) [1]", self.source.voxel_sizes()[1])
                 converter.convert_sinogram_parameter(output[scat_type + "_" + window], "scaling factor (mm/pixel) [2]", self.source.voxel_sizes()[2])
-                converter.convert_sinogram_parameter(output[scat_type + "_" + window], "Radius", float(self.config.get_value("distance_to_detector"))*10)
+                converter.convert_sinogram_parameter(output[scat_type + "_" + window], "Radius", float(self.config.get_value("height_to_detector_surface"))*10)
         
         self.output = output
 
