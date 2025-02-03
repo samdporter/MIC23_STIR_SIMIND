@@ -231,4 +231,3 @@ def extract_attributes_from_stir_headerfile(filename: str):
             elif "!name of data file := " in line:
                 attributes['data_file'] = line.split(":=")[1].strip()
     return attributes
-
