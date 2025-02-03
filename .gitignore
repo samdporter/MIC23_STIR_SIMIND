@@ -15,6 +15,7 @@
 !data/Tc99m/peak_stir.s
 !data/Tc99m/peak_stir_en_1_Primary.hdr
 !data/Lu177/osem_image.*
+!data/Lu177/registered_CTAC.*
 *.a00
 *.h00
 *tmp*
