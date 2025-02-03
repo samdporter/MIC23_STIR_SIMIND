@@ -9,7 +9,7 @@
 !data/*.hv
 !data/*.ahv
 !data/*.v
-!data/Lu177/STIR_TEW*
+!data/Lu177/tew_scatter.*
 !data/Lu177/SPECTCT_NEMA_128_EM001*
 !data/Tc99m/osem_reconstruction_postfilter_555*
 !data/Tc99m/peak_stir.s
