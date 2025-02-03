@@ -14,6 +14,7 @@
 !data/Tc99m/osem_reconstruction_postfilter_555*
 !data/Tc99m/peak_stir.s
 !data/Tc99m/peak_stir_en_1_Primary.hdr
+!data/Lu177/osem_image.*
 *.a00
 *.h00
 *tmp*
