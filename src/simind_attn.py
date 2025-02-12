@@ -1,6 +1,7 @@
 ### This file contains functions to convert Hounsfield Units (HU) to attenuation coefficients and densities.
 ### The functions are based on the bilinear model for attenuation coefficients and densities.
 ### I wouldn't necessarily trust all this implicitly, but it's a good starting point.
+### STIR has it's own way of doing this so TODO might be to wrap that. Or a comparison of the two.
 
 ### Author: Sam Porter
 
@@ -29,7 +30,6 @@ def get_attenuation_coefficient(material, energy, file_path = ''):
         return mass_attn_coeffs * density_water
     elif material == 'bone':
         return mass_attn_coeffs * density_bone
-
 
 def hu_to_attenuation(image_array, photon_energy, file_path = ''):
     # Constants
@@ -84,5 +84,3 @@ def attenuation_to_density(attenuation_array, photon_energy, file_path = ''):
     density_map = np.where(attenuation_array <= mu_water, density_air + slope_soft * attenuation_array, 
                            density_water + slope_bone * (attenuation_array - mu_water))
     return density_map
-
-

@@ -1,4 +1,5 @@
 ### This file contains functions to convert SIMIND output header files to STIR header files.
+### There is some horrible stuff here that I'm not very proud of. I'm sorry.
 
 ### Author: Sam Porter
 

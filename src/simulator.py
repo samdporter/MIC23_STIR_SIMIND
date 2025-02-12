@@ -14,7 +14,8 @@ from .converter import Converter
 
 from .simind_attn import attenuation_to_density
 from .config import SimulationConfig, RuntimeSwitches
-from .functions import extract_attributes_from_stir_headerfile, extract_attributes_from_stir_sinogram, create_window_file
+from .sirf_utils import extract_attributes_from_stir
+from .simind_utils import create_window_file
 
 
 class SimindSimulator:
@@ -232,12 +233,7 @@ class SimindSimulator:
         
         """
         print("Warning: This will overwrite any other settings with those found in the template sinogram.")
-        if isinstance(template_sinogram, str):
-            attribute_dict = extract_attributes_from_stir_headerfile(template_sinogram)
-        elif isinstance(template_sinogram, AcquisitionData):
-            attribute_dict = extract_attributes_from_stir_sinogram(template_sinogram)
-        else:
-            raise TypeError('template_sinogram must be a string or SIRF AcquisitionData object')
+        attribute_dict = extract_attributes_from_stir(template_sinogram)
     
         self.add_index(29, attribute_dict['number_of_projections'])
         self.add_index(12, attribute_dict['height_to_detector_surface']/10) # convert to cm

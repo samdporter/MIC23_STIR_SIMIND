@@ -1,3 +1,6 @@
+### These can now be found in SIRF utils
+
+
 import os
 import sirf.STIR as spect
 import numpy as np
