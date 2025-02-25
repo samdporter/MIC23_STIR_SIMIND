@@ -30,7 +30,7 @@ for i in {0..4}; do
     $PYTHON "${BASE_DIR}/STIR_demonstration.py" \
         --total_activity=187 \
         --time_per_projection=40 \
-        --photon_multiplier=10 \
+        --photon_multiplier=1000 \
         --photopeak_energy=150 \
         --window_lower=75 \
         --window_upper=225 \
@@ -46,8 +46,8 @@ for i in {0..4}; do
         --output_dir="${OUTPUT_DIR}" \
         --input_smc_file_path="${BASE_DIR}/input/input.smc" \
         --scoring_routine=1 \
-        --collimator_routine=0 \
-        --photon_direction=2 \
+        --collimator_routine=1 \
+        --photon_direction=3 \
         --crystal_thickness=15.9 \
         --crystal_half_length_radius=235 \
         --crystal_half_width=285 \

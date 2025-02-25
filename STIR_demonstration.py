@@ -63,52 +63,55 @@ def get_acquisition_model(measured_data, additive_data, image, mu_map_stir):
     acq_model.set_up(measured_data, image)
     return acq_model
 
+def lower_threshold_image(image, threshold):
+    """ saves lots of time in simulation"""
+    image_array = image.as_array()
+    image_array[image_array < threshold] = 0
+    image.fill(image_array)
+    return image
 
 def main(args):
-
     image = ImageData(args.image_path)
+    # threshold to 1% of max value
+    image = lower_threshold_image(image, 0.01*image.max())
     mu_map = ImageData(args.mu_map_path)
     measured_data = AcquisitionData(args.measured_data_path)
-    measured_additive = AcquisitionData(args.measured_additive_path)
-
-    ## Unfortunately this is necessary due to a bug in STIR
-    # Only for the STIR reconstruction
-    mu_map_stir = mu_map.clone()
-    mu_map_stir.fill(np.flip(mu_map.as_array(), axis=2))
-
+    
+    measured_additive = None
+    if args.measured_additive_path and args.measured_additive_path.endswith(".hs"):
+        measured_additive = AcquisitionData(args.measured_additive_path)
 
     os.chdir("/home/sam/working/STIR_users_MIC2023")
-    # set up the simulator
-    simulator = SimindSimulator(template_smc_file_path=args.input_smc_file_path,
-                                output_dir=args.output_dir, output_prefix= args.output_prefix,
-                                source=image, mu_map=mu_map, template_sinogram=measured_data)
 
+    simulator = SimindSimulator(
+        template_smc_file_path=args.input_smc_file_path,
+        output_dir=args.output_dir, 
+        output_prefix=args.output_prefix,
+        source=image, 
+        mu_map=mu_map, 
+        template_sinogram=measured_data
+    )
 
-    # Set the parameters for the simulation
     simulator.add_comment("Demonstration of SIMIND simulation")
     simulator.set_windows(args.window_lower, args.window_upper, 0)
     simulator.add_index("photon_energy", args.photopeak_energy)
     simulator.add_index("scoring_routine", args.scoring_routine)
     simulator.add_index("collimator_routine", args.collimator_routine)
     simulator.add_index("photon_direction", args.photon_direction)
-    simulator.add_index("source_activity", args.total_activity*args.time_per_projection)
-    # crystal dimensions
-    simulator.add_index("crystal_thickness", args.crystal_thickness/10) # cm
-    simulator.add_index("crystal_half_length_radius", args.crystal_half_length_radius/10)
-    simulator.add_index("crystal_half_width", args.crystal_half_width/10)
+    simulator.add_index("source_activity", args.total_activity * args.time_per_projection)
+    simulator.add_index("crystal_thickness", args.crystal_thickness / 10) 
+    simulator.add_index("crystal_half_length_radius", args.crystal_half_length_radius / 10)
+    simulator.add_index("crystal_half_width", args.crystal_half_width / 10)
     simulator.config.set_flag(11, args.flag_11)
-    simulator.add_index("step_size_photon_path_simulation", min(*image.voxel_sizes())/10) # cm
-    # resolutin
-    simulator.add_index("energy_resolution", 9.5) # percent
-    simulator.add_index("intrinsic_resolution", 0.31) # cm
-    simulator.add_index("cutoff_energy_terminate_photon_history", args.window_lower*0.5)  # keV
-
-
-    # Set the runtime switches
-    simulator.add_runtime_switch("CC", args.collimator) # which collimator
-    simulator.add_runtime_switch("NN", args.photon_multiplier) # multiplier for number of photons simulated
-    simulator.add_runtime_switch("FI", args.source_type) # source type
-
+    simulator.add_index("step_size_photon_path_simulation", min(*image.voxel_sizes()) / 10) 
+    simulator.add_index("energy_resolution", 9.5)
+    simulator.add_index("intrinsic_resolution", 0.31)
+    simulator.add_index("cutoff_energy_terminate_photon_history", args.window_lower * 0.5)
+    
+    simulator.add_runtime_switch("CC", args.collimator)
+    simulator.add_runtime_switch("NN", args.photon_multiplier)
+    simulator.add_runtime_switch("FI", args.source_type)
+    
     simulator.run_simulation()
 
     simind_total = simulator.get_output_total()
@@ -117,46 +120,33 @@ def main(args):
 
     base_output_filename = f"NN{args.photon_multiplier}_CC{args.collimator}_FI{args.source_type}_"
 
-    #acq_model = get_acquisition_model(measured_data, (measured_data-measured_additive).maximum(0), image, mu_map_stir)
-    #stir_forward_projection = acq_model.forward(image)
-
-    print(f"simind total counts: {simind_total.sum()}")
-    print(f"simind true counts: {simind_true.sum()}")
-    print(f"simind scatter counts: {simind_scatter.sum()}")
-    print("\n")
-    print("\n")
-    print(f"measured total counts: {measured_data.sum()}")
-    #print(f"stir true counts: {stir_forward_projection.sum()}")
-    print(f"measured additive counts: {measured_additive.sum()}")
-
-    # save counts to csv
-    counts = pd.DataFrame({
-        "simind_total": [simind_total.sum()],
-        "simind_true": [simind_true.sum()],
-        "simind_scatter": [simind_scatter.sum()],
-        "measured": [measured_data.sum()],
-        #"stir_forward": [stir_forward_projection.sum()],
-        "measured_additive": [measured_additive.sum()]
-    })
-
-    counts.to_csv(os.path.join(args.output_dir, base_output_filename + ".csv"))
+    counts = {
+        "simind_total": simind_total.sum(),
+        "simind_true": simind_true.sum(),
+        "simind_scatter": simind_scatter.sum(),
+    }
+    
+    if measured_additive is not None:
+        counts["measured_additive"] = measured_additive.sum()
+    if args.measured_additive_path and args.measured_additive_path.endswith(".hs"):
+        counts["measured"] = measured_data.sum()
+    
+    pd.DataFrame([counts]).to_csv(os.path.join(args.output_dir, base_output_filename + ".csv"))
 
     data_list = [
-        ((simind_total), "simind total"),
-        ((measured_data), "measured"),
-        ((simind_true), "simind true"),
-        ((measured_data-measured_additive).maximum(0), "measured scatter corrected"),
-        ((simind_scatter), "simind scatter"),
-        #((stir_forward_projection), "stir forward"),
-        ((measured_additive), "TEW scatter")
+        (simind_total, "simind total"),
+        (measured_data, "measured"),
+        (simind_true, "simind true"),
+        (measured_additive.maximum(0) if measured_additive is not None else None, "measured scatter"),
+        (simind_scatter, "simind scatter"),
+        (measured_additive if measured_additive is not None else None, "TEW scatter"),
     ]
-
-    data_list = [(data.as_array(), title) for data, title in data_list]
+    
+    # Filter out None values
+    data_list = [(data.as_array(), title) for data, title in data_list if data is not None]
 
     axial_slice = args.axial_slice
-
     vmax = max([data[0][axial_slice].max() for data, _ in data_list])
-
 
     # Define consistent font size and colormap
     font_size = 14
@@ -220,7 +210,8 @@ def main(args):
     # Create image subplots in the first row
     ax_images = [fig.add_subplot(gs[0, i]) for i in range(len(data_list))]
 
-    for i, (data, title) in enumerate(data_list):
+    filtered_data = [(data, title) for data, title in data_list if data is not None]
+    for i, (data, title) in enumerate(filtered_data):
         im = ax_images[i].imshow(data[0, :, coronal_slice], vmin=0, vmax=vmax, cmap=colormap)
         ax_images[i].set_title(f"{title}: {np.trunc(data.sum())} ", fontsize=font_size)
         ax_images[i].axis('off')
