@@ -1,0 +1,14 @@
+# ========================================
+# Data taken from *.lara.txt files 
+# http://www.nucleide.org/DDEP_WG/DDEPdata.htm
+#
+# Isd files created Tue Apr  3 11:40:13 2018
+# Photon included up to 3000 keV
+# ========================================
+halflife:1.85389e+09
+# ========================================
+# == Energy/kev    Abundance
+# ========================================
+      21.7078    7.90000e-07
+       22.089    1.28000e-07
+        89.52    5.80000e-06

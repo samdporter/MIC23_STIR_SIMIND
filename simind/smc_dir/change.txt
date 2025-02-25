@@ -1,0 +1,941 @@
+
+Main 1: Not in use for the moment
+
+Main 2: This option allows the user to read the menus and change 
+individual values. An index value is prompted, and after selecting 
+the appropriate one, the value of that particular index is given. 
+The menu is immediately updated. A carriage return given as a 
+value returns a null value. 
+
+Main 3: Menu showing the possible simulation flags that can be 
+used to control the program and that allow the user to invoke or 
+evoke certain types of simulation features. These flags are 
+Boolean and is set/reset by typing the corresponding flag number. 
+
+Main 4: Allow the user to export current CHANGE data to a 
+named SMC file. For transfer changes to multiple files, please refer 
+to Option 8 within this section. A carriage return given at the file 
+name prompter returns to the main menu without action. 
+
+Main 5: Allow the user to import data from a *.sac file previously 
+stored. Carriage return given at the file name prompter returns to 
+the main menu without action. 
+
+Main 6: Allow the user to delete all information (parameter 
+values) from CHANGE (current smc file) and thereby begin to 
+define the simulated system from scratch. All detector parameters 
+are set to zero and the simulation flags are set to FALSE. 
+
+Main 7: Allow the user to insert a line of comments about the 
+individual simulation that then will appear in the result file (*.res) 
+written by SIMIND. 
+
+Main 8: Allow the user to transfer current changes from an SMC 
+file to other previously created SMC files. By simply invoking the 
+wildcard command, the user has the possibility of controlling data 
+transfer from one SMC file to whichever other SMC files are 
+needed. The program prompts for [Y,N,A,Q]. "Y" means that 
+changes will be transferred to the current file, "N" means no 
+transfer, "A" means transfer without further confirmation (ALL) 
+and "Q" means simply quit the option and return to MAIN MENU. 
+The counter that keeps track of the changes is reset by either 
+
+*	Entering the program CHANGE, 
+*	Clearing all data by Index 8, or 
+*	c) After a transfer by Index 10. 
+
+Main 9: Tables of energy-dependent cross-sectional values for the 
+photoelectric, Compton, coherent, and pair production 
+interactions unique to the particular phantom. This is used for 
+both analytical phantom and for voxel-based photon. The typical 
+phantom cross section is water, given by the file h2o.cr3. 
+
+Main 10: Tables of energy-dependent cross-sectional values for 
+the photoelectric, Compton, coherent, and pair production 
+interactions unique to the particular phantom-The typical 
+phantom cross section is water, given by the file h2o.cr3. This 
+cross-section table is only used when simulating voxel-based 
+phantoms. The cross-section is used for those voxel that have a 
+density value higher than a particular threshold. This threshold is 
+defined in the simind.ini file located in the smc_dir folder. A 
+typical cross-section table is bone.cr3 but could also be the same 
+as the selection in Main 9.
+
+Main 11: Tables of energy-dependent cross-section data for 
+photoelectric, Compton, coherent, and pair production 
+interactions unique to the particular cover material incorporated 
+into SIMIND. In the cover interactions occur but no scoring of 
+deposit energy are made. A typical cross- section material for this 
+compartment is al.cr3.  
+ 
+Flag 10 determines the use of a cover
+
+Main 12: Tables of energy-dependent cross-sectional values for 
+the photoelectric, Compton, coherent, and pair production 
+interactions unique to the particular detector crystal incorporated 
+into SIMIND. The crystal of the detector is typically sodium iodide 
+and is denoted by the file name, nai.cr3. 
+
+Main 13: Allow the user to input a name for a file that stores 
+density maps for simulations of a non-homogeneous phantom. 
+The file extension default is *.smi. Please look 
+
+If you are using images created from MCAT or NCAT/XCAT 
+software you should only give the base name of the file. SIMIND 
+adds the characters 'atn_av'. It is assumed that the 
+MCAT/NCAT/XCAT files have the extension 'bin'
+
+Main 14: Allow the user to input a name for a file that stores 
+source maps for simulation of a nonhomogeneous source. 
+Similarly, the file extension default is *.smi. The file name is given 
+to SIMIND by the data file. 
+
+If you are using images created from MCAT or NCAT/XCAT 
+software you should only give the base name of the file. SIMIND 
+adds the characters 'act_av'. It is assumed that the 
+MCAT/NCAT/XCAT files have the extension 'bin'.
+
+Main 15: Allow the user to input a file name for the back-
+scattering media. This simulates the backscattering of photons 
+from light guides and PM tubes. The simulation is based, however, 
+on a solid material of equal size as the crystal but with a user-
+selected thickness. Index 11 in MENU 2 gives the thickness. The 
+number of scatter orders is set in the simind.ini file.
+
+Index 1: The energy in keV of the photon is given here. 
+SIMIND simulates only the transport of photons and disregards 
+the transport of secondary electrons. The energy imparted by the 
+electrons is assumed to be locally absorbed at the interaction site. 
+Even if the cross- section tables include photon energies of up to 
+several MeV, the user should be aware of the possibility of 
+inaccuracy in the results when simulating small crystal sizes and 
+high photon energies. 
+
+If the value is negative, a call to the isotop routine is made with 
+the purpose of defining the initial photon energy from this routine 
+instead of using the value defined by index 1. The absolute value of 
+index 1 is, however, used to define the location and width of the 
+energy window and other parameters [keV]. 
+
+Index 2: The x dimensions of the standard source shapes are 
+defined by this parameter. Please note that the numerical values 
+entered for the corresponding dimensions are half of the total 
+dimensions. Standard source geometries can be either point, 
+ellipsoidal, rectangular, or cylindrical (elliptical) in both the 
+horizontals or vertical direction. The choice for the actual shape of 
+the sources is given in index 15, described below [cm].  
+ 
+If voxel based source maps are simulated then this values define 
+the half-length of all slices defined by the phantom For example, 
+assuming 128 slices and a value of 40 for index 2 then slice 
+thickness will be 2*40/128 = 0.63 cm.
+
+Index 3: The y dimensions of the standard source shapes are 
+defined. Please note that the numerical values entered for the 
+corresponding dimensions are half of the total dimensions. 
+Standard source geometries can be either point, ellipsoidal, 
+rectangular, or cylindrical (elliptical) in both the horizontals or 
+vertical direction. The choice for the actual shape of the sources is 
+given in index 15, described below [cm]. 
+
+For voxel phantoms this value is not used. Index 31 is used to 
+define the voxel sides of the phantom (not the slice thickness)
+
+Index 4: The z dimensions of the standard source shapes are 
+defined. Please note that the numerical values entered for the 
+corresponding dimensions are HALF of the total dimensions. 
+Standard source geometries can be either point, ellipsoidal, 
+rectangular, or cylindrical (elliptical) in both the horizontals or 
+vertical direction. The choice for the actual shape of the sources is 
+given in index 15, described below [cm].
+
+For voxel phantoms this value is not used. Index 31 is used to 
+define the voxel sides of the phantom (not the slice thickness)
+ 
+Index 5: The x dimension of the standard phantoms is defined. 
+The dimensions of the phantoms are similarly defined as the 
+source distribution described above in that all dimension values 
+are just half of their total value [cm]. 
+
+If voxel based phantoms are simulated the values define the half-
+length of all slices defined by the phantom. For example, assuming 
+128 slices and a value of 40 for index 2 then slice thickness will be 
+2*40/128 = 0.63 cm.
+
+Index 6: The y dimension of the standard phantoms is defined. 
+The dimensions of the phantoms are similarly defined as the 
+source distribution described above in that all dimension values 
+are just half of their total value. For voxel phantoms this value is 
+not used. Index 31 is used to define the voxel sides of the 
+phantom (not the slice thickness) [cm]
+
+Index 7: The z dimension of the standard phantoms is defined. 
+The dimensions of the phantoms are similarly defined as the 
+source distribution described above in that all dimension values 
+are just half of their total value. For voxel phantoms this value is 
+not used. Index 31 is used to define the voxel sides of the 
+phantom (not the slice thickness) [cm]
+
+Index 8: The length of the cylindrical crystal in the x- direction. If 
+index 10 is set to zero, then the detector is assumed to be of a 
+cylindrical shape with a radius equal to index 8 [cm]. 
+
+Index 9: The thickness of the scintillation crystal is given here 
+[cm]. 
+
+Index 10: The width of the detector. If this index is equal to zero, 
+then the detector is assumed to be a be of a cylindrical shape with 
+the radius equal to the value defined by index 8 [cm]. 
+
+Index 11: This value determines the thickness of the volume 
+behind the scintillation crystal that simulates the light guides and 
+PM tubes [cm]. The number of scatter orders in the back 
+scattering media is defined in the simind.ini file.
+
+Index 12: The distance from the origin of the coordinate system 
+(see Figure 1) to the lowest part of the detector. Note that, 
+depending on the defined simulation flags, this can be either the 
+collimator lower surface, the protection cover or the scintillation 
+crystal itself [cm].  
+ 
+If this is set to a negative number when using analytical phantom 
+the distance with be equal to Index 5 + the absolute value of this 
+negative number. This is convenient when simulating various 
+phantoms using the same phantom surface to camera distance.
+
+Index 13: A protecting cover can be simulated that has the same 
+shape as the scintillation crystal. No imparted energy is, however, 
+scored within the cover. The material can also be different and is 
+defined by the file name of the cross- section table in the main 
+menu. Index 13 then defines the thickness of this protecting cover 
+[cm]. 
+
+Note: In this version of SIMIND, the protecting cover works only 
+for photons that are impinging on the lower side of the detector.
+
+Index 14: Integer flag indicating the type of phantom that is to be 
+simulated. Available standard phantoms are 
+
+2 = Rectangular phantom  
+3 = Vertical cylindrical phantom.  
+4 = Horizontal cylindrical phantom. 
+
+Note: The cylindrical phantom can actually be elliptical if either 
+Indices 5,6 or 6,7 (depending on the direction of the phantom) are 
+chosen not to be equal. 
+
+If the flag value is negative, the phantom is simulated by using 
+binary density maps. The file name storing the particular maps are 
+defined in the MAIN MENU option 14 and should have the 
+extension as described below
+
+-1 = An Integer*2 Density Distribution Map (2 byte integers, 
+1000*density, extension:*.dmi) 
+-2 = The Zubal Voxel Man Density Distribution (1 byte, 
+extension:*.dat) 
+-3 = The Zubal Brain Density Distribution (1 byte, extension:*.dat) 
+-4 = The Zubal Whole-Body Voxel Man Density Distribution (1 
+byte, extension:*.dat) 
+-5 = Code based Zubal Phantom (1 byte,extension:*.dat) 
+-6 = Code based NCAT/XCAT Phantom (4 byte float, 
+extension:*.bin) 
+-7 = Generic NCAT/XCAT phantom (4 byte float, extension:*.bin)  
+-8 = Generic MCAT phantom (4 byte float, extension:*.bin)
+
+The non-homogeneous phantom is further defined by Indexes 31- 
+38, which are described below. 
+
+Note: Since the coordinate system for MCAT/NCAT axially is 180 
+degrees rotated compared to SIMIND then these images are 
+flipped vertically when reading into SIMIND.
+
+Note: NCAT and MCAT adds the label "atn_av" to the base name. 
+This is also done by SIMIND so you should only give the base name 
+for the phantom in index 14 in the main menu.
+
+Note: When simulating time frames generated by NCAT or MCAT 
+see information concerning the switches /SF and /DF under the 
+section "Running SIMIND"
+
+Index 15: Integer flag indicating the type of source distribution 
+that is to be simulated. Available standard source shapes: 
+
+1 = Ellipsoidal source  
+2 = Rectangular source.  
+3 = Vertical cylindrical source.  
+4 = Horizontal cylindrical source.  
+5 = Point source (x,y,z = 0,0,0).  
+6 = Simple cardiac phantom  
+7 = Multiple spheres phantom (old jaszak program) 
+
+If a horizontal cylinder is selected, then index 2 is the axial source 
+length and Indices 3 and 4 define the other axes, respectively. If a 
+vertical cylinder is chosen, then index 4 defines the axial source 
+length and Indices 2 and 3 define the remaining axes.  
+ 
+Note: The cylindrical source distribution can actually be elliptical if 
+either index's 2,3 or 3,4 (depending on the direction of the source) 
+are chosen not to be identical. 
+
+If the flag value is negative, a call is made to a user- written source 
+routine. This source routine should then provide the coordinates 
+of a sampled decay position through the parameter list. This 
+procedure is described further in the manual. If the default source 
+map routine is used this support the following phantoms. 
+ 
+-1 = An Integer*2 Source Distribution Map (2 byte Integer, 
+extension:*.smi) 
+-2 = The Zubal Voxel Man Source Distribution (1 byte, 
+extension:*.dat) 
+-3 = The Zubal Brain Source Distribution (1 byte, extension:*.dat) 
+-4 = The Zubal Whole-Body Voxel Man Source Distribution (1 byte, 
+extension:*.dat) 
+-5 = Code based Zubal Phantom (1 byte, extension:*.bin) 
+-6 = Code based NCAT Phantom (4 byte float, extension:*.bin)  
+-7 = Generic NCAT phantom (4 byte float, *.bin  
+-8 = Generic MCAT phantom.  
+
+Note: The difference between -7 and - 8 is that the NCAT/XCAT 
+images are 180 degrees rotated relative to the MCAT images.
+
+Note: NCAT and MCAT adds the label "act_av" to the base name. 
+This is also done by SIMIND so you should only give the base name 
+for the phantom in index 14 in the main menu.
+
+Note: When simulating time frames generated by NCAT or MCAT 
+see information concerning the switches /SF and /DF under the 
+section "Running SIMIND"
+
+Note: When using voxel-based images as a source the value of 
+Index 26 is note used. Instead the sum of all pixel values in the 
+source maps as used as photons/projections. This value can be 
+increased by a integer factor n using the switch /NN:n 
+
+Index Page 2
+
+Index 16: A translation of the x coordinate of the sampled decay 
+location that has been generated by the standard source 
+geometries or the source routines supplied can be made here. 
+Normally, a decay point is sampled symmetrically around the 
+origin of the coordinate system. Still, it may be required to move 
+the source, e.g., a point source location, either closer to the 
+surface or to a larger depth. 
+ 
+Index 17: A translation of the y coordinate of the sampled decay 
+location that has been generated by the standard source 
+geometries or the source routines supplied can be made here. 
+Normally, a decay point is sampled symmetrically around the 
+origin of the coordinate system. Still, it may be required to move 
+the source, e.g., a point source location, either closer to the 
+surface or to a larger depth. 
+ 
+Index 18: A translation of the decay location that has been 
+generated by the standard source geometries or the source 
+routines supplied can be made here. Normally, a decay point is 
+sampled symmetrically around the origin of the coordinate 
+system. Still, it may be required to move the source, e.g., a point 
+source location, either closer to the surface or to a larger depth 
+[cm].
+
+Note: A positive value of z moves the source towards the camera 
+ 
+Index 19: This integer flag controls the solid angle in which the 
+photon is to be emitted. The calculation of the solid angle 
+depends on the actual value of index 19.  
+ 
+1) If the value is 2 - then the solid angle is calculated using the 
+following rules in descending priority: 
+ 
+a)	If a collimator is used, the solid angle will be calculated from 
+the hole sizes and the effective collimator thickness. 
+b)	If a phantom is simulated then the solid angle is calculated 
+from the phantom dimension, given by Indices 5,6, and 7, and 
+the detector dimensions in such a way that a photon will 
+always have a chance to strike any part of the detector from 
+any point within the phantom. 
+c)	If no phantom is simulated, the solid angle is calculated from 
+the source dimension, given by Indices 2,3 and 4, and the 
+detector dimensions so that a photon will always have a 
+chance to strike any part of the detector from any point 
+within the source distribution.  
+
+2) If the value is 3 the solid angle is calculated using the phantom 
+dimension and camera dimension regardless in a collimator has 
+been selected. This is convenient in simulations where 
+penetration is important (Index 53=1) and when it is necessary to 
+simulate photons impinging on the whole camera surface.
+ 
+3) If the value is less than or equal to zero, then the polar angle 
+that defines the solid angle will be calculated from the absolute 
+value given in this index [degrees].  
+
+Note: The calculation of (1) and (2) uses the values defined in 
+CHANGE. The proper value for the solid angle may therefore not 
+be calculated if an external source routine is used. The user should 
+therefore give an absolute value of the solid angle to be sure that 
+the whole detector is covered. This restriction is only valid if 
+simulating an ordinary detector without collimators. 
+
+Note: If a zero value is given to simulate a narrow-beam situation, 
+then some basic parameters in the result file will not be 
+calculated. The value cannot be equal or large than - 90. If this 
+occurs the max angle is set to 89.99 degrees.
+
+Index 20: This index refers to the upper energy window threshold. 
+Instead of using the absolute values of the upper threshold in keV, 
+a relative window definition can be given by using a negative sign. 
+For example, a value of -20 given either to indices 20 or 21 will be 
+regarded as a 20% (+-10%) energy window centred on the primary 
+photon energy, given by index 1 [keV or %]. 
+ 
+Index 21: These indices refer to the lower energy window 
+threshold. Instead of using the absolute values of the lower 
+threshold in keV, a relative window definition can be given by 
+using a negative sign. For example, a value of -20 given either to 
+indices 20 or 21 will be regarded as a 20%  (+-10%) energy window 
+centred on the primary photon energy, given by index 1 [keV or 
+%]. 
+
+Index 22: The energy resolution of the detector is modelled from 
+an on-line convolution of the imparted energy from each photon 
+history using an energy-dependent Gaussian function that varies 
+with 1/Sqrt(E). The reference point for the energy resolution is 
+given as the percentage Full-Width at Half-Maximum (FWHM) at 
+140 keV [%]. The simulation flag 12 can turn off the energy 
+resolution.
+
+Index 23: This index refers to the intrinsic spatial resolution of the 
+crystal. The simulation of this parameter is based on the same 
+idea as the energy resolution, described above. The spatial 
+resolution is provided as the FWHM at 140 keV and will blur the 
+x,y coordinate by a Gaussian function  [cm]. 
+ 
+Index 24: The number of emitted photons per decay is used to 
+calculate basic detector parameters, such as the sensitivity 
+(cps/MBq) of the detector system. This value can also be defined 
+from the spectrum file. The priority is as follows: 
+ 
+1)	If there is a line in the spectrum file starting with the word 
+GAMMA=value then the emitted photons per MBq will be set 
+to 'value' 
+2)	If a spectrum file without an explicit GAMMA defined in the 
+file then the GAMMA is calculated from the sum of 
+abundances for all photon energies. 
+3)	If no spectrum file is used the GAMMA obtained from index 
+24 in CHANGE is used. 
+  
+The option (1) can be useful is only a part of an energy spectrum is 
+to be simulated but retaining the proper value of GAMMA. 
+ 
+Index 25: The activity of the source distribution is used to obtain 
+correct values of the sensitivity and different calculated count 
+rates and also corrects values for the pixels in the projection data. 
+It does not decide the number of photons that actually are 
+simulated [MBq]. 
+
+Note: the corresponding acquisition time per projection is 
+assumed to be 1 second. If the numerical values in the projection 
+data should reflect a different acquisition time then use index 25 
+in the way that the value reflects the product of activity times the 
+acquisition time. 
+ 
+Index 26: This index represents the number of photon histories 
+that are simulated per projection angle. If a SPECT study is to be 
+simulated, the total number of compiled photon histories will be 
+this value time the number of projection angles. The value is given 
+as the number of thousands of histories. Note that doubling this 
+value does not increase the count level in the final projection nor 
+the energy pulse-height distribution since all data are normalize to 
+the defined activity and 1 second acquisition time. However, it 
+improves the statistical uncertainty.
+
+Note: This value does not affect the number of histories when 
+simulating voxel-based phantoms. In these cases, the sum of all 
+voxel values will determine the number of histories per 
+projection. This value can be increase by the multiplier, defined by 
+the switch /NN.
+ 
+Index 27: SIMIND has a limited number of energy channels used 
+to calculate the energy pulse-height distribution. The default value 
+is 512 channels but can be set differently by index 80. Index 27 
+then represents the number of keV/channel. If the defined upper 
+energy window (given by index 20) is greater than the maximum 
+energy defined by the number of bins times the keV/channel in 
+the spectra, then SIMIND will increment the keV/channels to a 
+proper value that covers the upper energy threshold. Still, this 
+check will not decrement the keV/channel value! [keV/channel]. 
+ 
+Index 28: The pixel size is used to define the area on the crystal 
+that is represented by the projection image. The matrix is always 
+centred on the cylindrical axis of the crystal and no translation can 
+be made. The actual dimension of the projection matrix is given by 
+indices 76 and 77. The image created can, however, be zoomed in 
+or out arbitrarily by giving the smaller/larger value of the pixel 
+size. An error message will appear if an image with zero pixel size 
+is simulated [cm]. 
+
+Index 29: This value defines the number of SPECT projections to 
+be simulated. Each projection is stored in a SPECT file either in the 
+current directory.  
+
+Index 30: This option defines the SPECT rotation. The value is the 
+rotation angle and the sign define the rotation direction. Negative 
+means counter-clockwise and positive sign means clockwise. To be 
+comparable with older versions of SIMIND the following 
+translations still remains [degrees]. 
+
+0 = 360 degrees counter-clockwise 
+1 = 180 degrees counter-clockwise  
+2 = 360 degrees clockwise 
+3 = 180 degrees clockwise
+
+Index 31: This value represents the pixel size of the density maps 
+being used to simulate the non-standard phantoms. This value has 
+nothing to do with the pixel size used to form the images and 
+projection matrices. Instead, the value is used to scale the 
+distance from a relative cell position in the 'matrix' space to a 
+physical distance in the coordinate system [cm]. 
+
+Index 32: Integer value that refers to the direction of the phantom 
+that is defined by the density maps. 
+0 = density map where (i,j) corresponds to direction y,z   
+(transversal slices) 
+1 = density map where (i,j) corresponds to direction x,y   (Sagittal 
+slices) 
+2 = density map where (i,j) corresponds to direction x,z   (Coronal 
+slices)
+
+Index 33: This index defines the image number in the density map 
+file that will be read as the first image. If the value is less than zero 
+then the block number (number of 512 bytes' blocks) in the binary 
+file that defines the first density map is defined. Block zero 
+indicates the beginning of the file. This can be used to skip a file 
+header. 
+
+Index 34: Value equal to the number of density maps that will be 
+read into SIMIND. Memory for this number of maps is allocated at 
+run time. 
+
+Index 35: Value for the density limit that defines the border. If the 
+density image is slightly noisy, a threshold can be used to properly 
+define the border of the phantom. The ray-tracing technique 
+assumes that the border of the phantom has been reached if a 
+density value that is lower than the given threshold is found [gcm-
+3]. 
+
+Index 36: These indices refer to the column location (I dir) of the 
+pixel cell in the density map that corresponds to the origin of the 
+coordinate system. Normally, the cell with index's 0,0 should be at 
+the centre. However, if a translation has been performed in the 
+maps, then the shift of the centre pixel cell from the origin can be 
+accounted for [cm]. 
+
+Index 37: These indices refer to the row location (J dir) of the pixel 
+cell in the density map that corresponds to the origin of the 
+coordinate system. Normally, the cell with index's 0,0 should be at 
+the centre. However, if a translation has been performed in the 
+maps, then the shift of the centre pixel cell from the origin can be 
+accounted for [cm]. 
+
+Index 38: This value is the step size that is used to ray-trace the 
+photon path through the density maps. This value should be less 
+than the pixel size of the density map (index 31). However, the 
+actual computing time may depend on this value so don?t select 
+too low value [cm]. 
+
+Index 39: These indices refer to the location (K dir) of the slices in 
+the density map that corresponds to the origin of the coordinate 
+system. This thus allows the user to shift the centre of the 
+phantom in the x-direction relative to the origin of the system 
+[cm] 
+  
+Index 40: Not in use for the moment!
+
+Index 41: This index refers to the starting angle of the detector in 
+a SPECT simulation. A positive value indicates a clockwise rotation 
+while a negative value indicates a counter clockwise rotation. A 
+value of zero means that the detector is centred on the z- axis of 
+the coordinate system [degrees]. 
+
+Index 42: This value controls the non-circular orbit of the SPECT 
+camera. This orbit can operate in different ways. A positive value 
+determine a parameter called ?orbital rotation fraction? and is 
+used to simulate a non-circular SPECT study based on a major and 
+a minor axis. This fraction defines the maximum distance from the 
+origin to the lowest part of the detector in the y-direction relative 
+to the distance given in index 12.  For example, a fraction of 1.5 
+yields a maximum radius of rotation along the y- axis of 15 cm if 
+index 12 is set to 10 cm. This value can be less than unity but not 
+less than or equal to zero.
+
+If the value is negative the distance from the origin the detector 
+surface is calculated for each angle by the use of the density map. 
+This mimics a SPECT system with photosensitive detection of the 
+outline. The absolute value of index 42 will define the distance (air 
+gap) between the surface of the phantom and the detector. The 
+distances is stored for each projection angle in a file with base 
+name equal to the input name and the extension *.cor. Note that 
+it is important that the density value that defines the border 
+(index 35) is higher that 0.0. Otherwise the distances calculated 
+will correspond to the density matrix borders and not the object 
+inside the density matrix. The *.cor file is a simple ascii text file 
+and this can then be used in a reconstruction program that can 
+make compensation for the distance dependent spatial resolution.
+
+Index 43: This index allows a shift of the camera head relative to 
+the phantom. This can be useful if a large phantom is simulated 
+with a source distribution outside the field-of-view of the camera 
+[cm]. 
+
+Index 44: This index specifies a shift of the camera in Y- direction 
+relative to the phantom. If zero, the camera centre and the 
+phantom centre are aligned [cm]
+
+Index 45: A special code-based phantom format is supported 
+when simulating voxel-based phantom. Instead of the attenuation 
+and activity is defined directly in the images these values are 
+defined in a table. This makes a setup of multiple source 
+distributions for a given phantom easy since only one binary voxel 
+phantom is needed. These phantoms should be either in one byte 
+mode (index 14,15=-5) or as float (four bytes real values) arrays 
+(index 14,15=-6). Each voxel should have a value from 0 to 255 
+and where the number identifies a particular structure/organ. The 
+definition of the organ, its code and corresponding densities and 
+relative activity concentrations is given in a *.zub file (see the 
+vox_man.zub in the SMC_DIR directory as an example). In a *.zub 
+text file there is different sections that is valid for different 
+phantoms. They can also develop own phantom and add code 
+section to the text file as long as it follows the format.  
+
+The supported phantoms for this code-based feature are the 
+Zubal torso phantom vox_man1.dat (index 14,15=-1), the Zubal 
+Brain phantom vox_brn.dat and the whole- body version of the 
+Zubal torso phantom vox_man3.dat. Also a segmented RSD Torso 
+rsd.dat is available. Since these phantoms have the same code for 
+different regions you have to select the proper code page in the 
+*.zub file. 
+This is a number indicated in the text file. If you create your own 
+code-based phantom in a byte format then you can add your own 
+section in the *.zub file if you follow the format of the earlier 
+phantom and select a unique number. The main advantage with 
+this feature is that you can easily change the densities and activity 
+per voxel by editing a simple text file instead of creating large 
+image files
+Index 46: This parameter is the length of the collimator hole in the 
+x-direction [cm]. For hexagonal holes - this value defines the inner 
+square-to-square hole diameter commonly referred to in many 
+collimator data-sheets as an inscribed circle or a flat-to-flat 
+distance [cm].
+
+Index 47: This parameter is the length of the collimator hole in the 
+y-direction [cm]. 
+
+Note: For a hex-hole collimator this value is normally not given by 
+the user. Instead this is calculated using the command *standard 
+(see above text). 
+
+Index 48: This parameter is the distance between two collimator 
+holes in the x-direction. In data-sheet this distance is often noted 
+as the septal thickness [cm]. 
+
+Index 49: This parameter is the distance between two collimator 
+holes in the y- direction [cm]. This value is normally not given by 
+the user. Instead this is calculated using the command *standard 
+(see above text). 
+
+Index 50: This parameter is the distance of the shift in the x-
+direction from the centre to adjacent holes. This parameter holds 
+only for circular or hexagonal collimator holes [cm].  For a hex-
+hole collimator this value is normally not given by the user. 
+Instead this is calculated using the command *standard (see 
+above text). 
+
+Index 51: This parameter is the distance of the shift in the y-
+direction from the centre to adjacent holes. This parameter holds 
+only for circular or hexagonal collimator holes [cm]. This value is 
+normally not given by the user. Instead this is calculated using the 
+command *standard (see above text). 
+
+Index 52: This parameter is the physical thickness of the 
+collimator [cm].
+ 
+Index 53: The type of collimator routine used. 
+
+0 = the earlier default collimator with analytical weighting is used 
+developed by Eric C Frey et al..  
+1 = the parallel hole collimator with hex or rectangular holes that 
+allow for penetration and scattering are used (used before in the 
+SIMINDC and SCATTWINC programs)
+
+Index 54: This parameter calls for the geometric shape of the 
+collimator holes. The possible options in this flag are at present 
+time 3 (hexagonal holes), and 4 (rectangular holes). This option is 
+only used in the collimator nr 1 (index 53)
+
+Index 55: This parameter defines the type of collimator used 
+when index 53 is set to 0. The possible options are 
+
+0 = Parallel-hole collimator (Index 51=0,1)  
+1 = Pinhole collimator (only collimator 1) 
+2 = Converging collimator. (Index 51=0) 
+3 = Fan-beam collimator. (Index 51=0) 
+4 = Diverging collimator. (Index 51=0)
+
+Index 56: Collimator dependent variable 1. 
+
+a)	Parallel-hole collimators: This will define a possible air gap 
+between the collimator and the cover of the detector.
+b)	Pin-hole Collimator (53=1): This value defines the air gap 
+between the pin-hole and the cover of the detector
+
+Index 57: Collimator dependent variable 2. If simulating fan-beam, 
+cone-beam or diverging collimators with collimator Index 53=0 
+then this value defines the focal distance 
+
+Index 58: Collimator dependent variable 3. Will be used in future 
+releases depending on choice of the collimators.
+
+Index 59: If this is 1 then the collimator that handle septa 
+penetration (index 53=1) with be arbitrarily moved (one hole-
+diameter + one septa) in order to avoid visible hole patterns in the 
+image
+
+Index 60: Collimator dependent variable 4.  
+Will be used in future releases depending on choice of the 
+collimators.
+Index 61: This index gives the energy for the transmission 
+photons. If a zero value is defined then the energy will be equal to 
+the energy of the emission photons (index 1)  [keV] 
+
+Index 62: This defines the polar angle in which the transmission 
+photons are emitted. If the value is 0 then the polar angle as is 
+defined by the acceptance angle of the collimator holes, is used  
+[degrees].
+
+Index 63:This define the azimuthal angle in which the 
+transmission photons are emitted. If the value is 0 then the 
+sampled range of the azimuthal angle will be randomly 
+distributed between s0- 360  [degree].
+
+Index 64: The source length of the transmission source along the 
+x-axis [cm] 
+
+Index 65: The source width of the transmission source along the y-
+axis. If 0 then the source width is equal to the number of columns 
+in the density map times the pixel size for the density map [cm].
+
+Index 66: The shift of the transmission source in x direction [cm].
+
+Index 67: The shift of the transmission source in y direction [cm].
+
+Index 68: The shift of the transmission source in z direction [cm].
+
+Index 69: Unused
+
+Index 70: During the simulation a corresponding blank projection 
+is calculated. This projection is not generally stored in a file but is 
+necessary to calculate the attenuation projections. This option 
+defines the way the transmission projections are stored. The 
+result is stored in the SPECT *.a00 file 
+2 = Raw transmission projection  
+1 = Ratio Transmission projection / Correlated Blank projection 
+0 = alog(Transmission projection / Correlated Blank projection)
+Index 76: This index defines the size of the image matrix in terms 
+of number of columns. The first columns is 1. 
+
+Index 77: This index defines the size of the image matrix in terms 
+of number of rows. The first row is 1. 
+
+Index 78: Matrix size of the density map in the I direction (column)
+
+Index 79: Matrix size of the source map in the I direction 
+(column).  
+ 
+Note: The Zubal phantom (index 14 and 15 = - 2, -3, -4) has 
+specific hard- coded values equal to 128x128 (index -2) 256x256 
+(index -3) and 192x96 (index -4). This because these are known 
+phantom located in the smc_dir folder.
+ 
+Index 80: Number of channels in the energy pulse-height 
+distributions.  
+
+Note: The number of channels needs to be a multiple of 128.
+
+Index 81: Matrix size of the density map in the J direction (row). If 
+this value is zero then it will be set equal to the value of index 78.
+
+Index 82: Matrix size of the source map in the J direction (row). If 
+this value is zero then it will be set equal to the value of index 79.
+
+Index 83: Cut-off energy used to terminate the photon histories 
+below the lower energy threshold when simulating scatter in the 
+phantom. This value can be used in two ways. 
+
+1)	If the value is positive then the cut-off value is the actual 
+value in keV 
+2)	if negative then the cut-off value is defined as the lower 
+energy window threshold minus the value of index 83. 
+
+When using the scat twin scoring routine (index 84=1) together 
+with an negative number of the cut-off energy then the lowest 
+value of the energy window settings defined in the *.win file will 
+be used as the cut-off value. 
+
+Note: The program is terminated if the cut-off value is higher than 
+the lowest threshold. 
+
+Note: Because of the energy resolution an event with a lower 
+energy still can come into the energy window because of the 
+Gaussian distribution. Therefore you need to be careful about the 
+section of the value. 
+
+Note: The maximum scatter order is set to 10 automatically when 
+using a cut-off value. 
+
+Index 84: Standard scoring routine compiled and linked to the 
+program that can be used. See separate link for more information 
+about each of the routines.
+
+0 = Dummy scoring routine 
+1 = The ?Scattwin? scoring routine  
+2 = The ?List mode? scoring routine 
+3 = The ?Forced Collimation? routine 
+4 = The "Penetrate" scoring routine
+
+Note: See "Scoring Routines" for information.
+
+Index 85: This option allows for writing certain results to a text file 
+in a comma-separated value format (csv). The advantage is that it 
+is then easy to import results into for example a excel program. 
+There are different ways of writing data and the output is 
+described below. Please review the page "The RES file" for further 
+information on each of the parameters below. The file name 
+generally will be output.csv. However, is a third file is given at the 
+command line then this file name will be used. For example, by 
+giving the command "SIMIND input output/85:1 csvname" a file 
+named csvname.csv will be created. 
+
+*	value=1: 'ResFile','ComReg','FulReg', 
+'PilReg','Foto1','Compt1','Effici(W)','SD','Effici(D)', 
+'Cps/MBq','Cpm/mCi','Peak/C1','Peak/C2','Peak/Tot', 
+'FWHM','FWTM'
+
+*	value=2: 'ResFile','ScattPrim', 'ScattTot','ScatterOrder from 1 
+to ISCUT','FWHM','FWTM'
+
+*	value=3: 
+'File','HV0','HoleDiam','CollZ','CollDep1','CollDep2','CollDep3','
+CollDep4', 'CpsMBq', 'Geom (D)','Geom (W)','Pen (D)','Pen 
+(W)','Scatt (D)','Scatt (W)'
+
+*	value=4: Scatter/Total 
+(W),ScatterWeight(W),PrimaryWeight(W) for each projection 
+angle. In this option a new file is always created!
+
+*	value=5: The activities and concentrations for the voxel-based 
+phantom is written 
+
+Note: The FWHM and FWTM results are only relevant if a point 
+source located in centre (0,0,0) has been simulated. 
+ 
+Note: If you use this option on the command line with a negative 
+value, i.e. /85:-1 then a blank line is added to the csv file. This is 
+useful to separate certain data from others.
+
+Note: If no CVS file is present then a new file is created. Otherwise 
+a line is added to the present content. If you use this option in a 
+script be sure to add a command that delete the cvs file before 
+starting the simulation series.
+Note: Send Michel an email if you have a specific combination of 
+results that you would like to be sent to a CSV file and that is not 
+covered by the above options.
+Flag 1: Determine whether on-line printout and results will be 
+written to the terminal during the actual simulation. This flag 
+should be turned off when submitting a command procedure to a 
+batch queue . 
+
+Flag 2: Determine whether a binary image file (*.bim) that will 
+store a calculated planar image should be created. This flag does 
+not affect the actual calculation of the matrix. The file format for 
+the image is Real*4.
+
+Flag 3: Determine whether a binary energy pulse-height 
+distribution file (*.bis) should be created. As for Flag 2, this does 
+not affect the calculation of the different detector parameters 
+that are derived from the energy spectra. The file format for the 
+spectrum file is Real*4.
+
+Flag 4: Include simulation of a scintillation camera collimator. The 
+values in Indices 45-53 are not in use although they are defined.
+
+Flag 5: Determine if a SPECT simulation will be done. If this flag is 
+set then the total number of photon histories in the SPECT 
+simulation will be the number of photon histories per projection 
+multiplied by the number of projection angles. Invoking Flag 5 sets 
+Flag 2 to FALSE because a special SPECT file with the extension 
+*.a00 is produces. The file format for the image is Real*4.
+
+Flag 6: Include simulation of characteristic K-a x-ray photons 
+emitted from a photoelectric absorption site in the crystal, the 
+collimator and the protecting cover. However, interactions in 
+these different compartments actually are to be simulated 
+depends on what is set in the simind.ini file located in the smc_dir 
+folder. 
+
+Flag 7: Include a volume behind the crystal to simulate scattering 
+in light guides and PMT. The thickness is given by index 11. The 
+number of scatter order is default 3 and can be change by editing 
+the simind.ini file located in the smc_dir folder. 
+
+Flag 8: Controls the sequence of the random number generator. If 
+set to FALSE, then the same initial seed will be used in every 
+simulations. Then, no statistical differences will be noticed 
+between different simulations of identical imaging systems. This 
+function can be useful when tracing errors. For a normal 
+procedure, the flag should, however, be set to TRUE. 
+
+Flag 9: Simulation of transmission SPECT Imaging. Transmission 
+simulations require an image- based phantom to work.
+
+Flag 10: This option includes the simulation of the protection 
+cover. The cover is defined by its cross-section file (in the MAIN 
+MENU of change) and the thickness of the layer (index 13). 
+
+Flag 11: This option takes into account the simulation of the 
+phantom. The dimensions of the phantom are given by index's 5-7 
+or if index 14 is negative, index's 31- 38. Be sure to have a valid file 
+name for the non-homogeneous phantom file when setting index 
+14 to a negative number.
+ 
+Flag 12: This flag incorporates both a simulation of a limited the 
+energy resolution and the intrinsic spatial resolution into action in 
+the simulation. The actual values for the system are defined by 
+indices 22 and 23. If this flag is reset, then the energy pulse-height 
+spectra will reflect the imparted energy in the scintillation crystal 
+and not counts from simulated scintillation light that may be 
+affected by statistical fluctuations. 
+
+Flag 13: This option forces the photons to interact in the crystal by 
+invoking a ?forced direction? variance reduction technique. This 
+option is useful when simulating high-energy photons that are 
+impinging on thin crystals or when simulating a low-density 
+detector. The calculated detector parameter is not affected by this 
+option since the weight of each photon is adjusted for the forced 
+interaction. 
+
+Flag 14: If this flag is true then the files storing the image and the 
+SPECT projection data will have a header of the Interfile version 
+3.3 formats. This format has been developed to establish a way of 
+communicate between different nuclear medicine units. The 
+specific SIMIND parameters defined by SIMIND has a prefix of ;# 
+and is thus treated as comments by an external system.
+
+Flag 15: If this flag is true then a file of the phantom is stored that 
+is re-sampled to the pixel size and slice thickness for the 
+corresponding SPECT image. The base name for the file is the 
+same as the density map file (Index 14 in the main menu) he 
+content in the file are in units of density and times 1000. The 
+extension is *.ict for the actual images and *.hct for the interfile 
+header. Note that these files is only created if voxel-based 
+phantoms are used and the flag 11 allow for interaction in the 
+phantom is set to true

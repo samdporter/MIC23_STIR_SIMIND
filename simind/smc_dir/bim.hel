@@ -1,0 +1,71 @@
+COMMON FILE bim.hel
+C 0 0 0 0
+C
+C         OPTION:  /SM = Smooth matrix with a filter
+C                  /LI = Select line number for profile
+C                  /AD = Number of lines centered around /LI
+C                  /HO = Horisontal profile (default)
+C                  /VE = Vertical profile
+C                  /-F = Do not save result on file with extension 'prn'
+C                  /-O = Do not write result to screen
+C                  /1R = Save Y-values only in the prn file
+C                  /2R = Save X and Y-value only in the prn file
+C                  /FW = Calculate Full Width at % Maximum (def=50)
+C                  /I1 = Input  I*2 matrix 128x128
+C                  /II = Input  I*2 matrix
+C                  /IA = Input  I*2 matrix and remove sign
+C                  /IU = Input  I*2 matrix unsigned (0-65535)
+C                  /OI = Output I*2 matrix with extension 'int'
+C                  /OU = Output I*2 matrix norm to 65534
+C                  /OR = Output R*4 matrix with externsion 'rim'
+C                  /OS = Output an ASCII file (max 256 with ext 'prn'
+C                  /+*- = Algebra with matrices
+C                  /IM = Starting with image number
+C                  /LO = Process a number of images
+C<RETURN>
+C                  /PL = Simple plot on the screen
+C                  /SB = Start at block when reading a file
+C                  /M2 = Rearrage Interfile Siemens MultiSPECT-2 files
+C                  /LG = Calculate logarithm - log(mtx(i,j)+1)
+C                  /XM = Multiply value to X-values (Slice)
+C                  /XP = Addition value to X-values (Slice)
+C                  /YM = Multiply value to Y-values (Matrix)
+C                  /YP = Addition value to Y-values (Matrix)
+C                  /MA = Addition slice from start image
+C                  /UT = Upper threshold limit (default=100%)
+C                  /LT = Lower threshold limit (default=  0%)
+C                  /NM = Normalize matrix peak to value
+C                  /NP = Normalize slice peak to value
+C                  /NA = Normalize slice to slice area times value
+C                  /NT = Normalize slice to mtx   area times value
+C                  /NO = Adds Poisson Noise
+C                  /BU = Butherworth filtering
+C                  /B1 = Butherworth filtering cut-off frequency
+C                  /B2 = Butherworth filtering order
+C                  /64 = Output only matrix. No profile data
+C                  /CA = Calculate region of intrest
+C                  /HD = Write only header
+C                  /TV = Translate Vertical
+c                  /SI = Use same input file (eg for noise realizations)
+C                  /RO = Matrix Rotation
+C                       'n' -> 2  Rotate the frame  90 degrees
+C                       'n' -> 3  Rotate the frame 180 degrees
+C                       'n' -> 4  Rotate the frame 270 degrees
+C
+C                      'n' -> -1  no rotation - only mirror
+C                      'n' -> -2  Rotate  90 degrees and mirror
+C                      'n' -> -3  Rotate 180 degrees and mirror
+C                      'n' -> -4  Rotate 270 degrees and mirror
+
+C                   /MS  Mask image with a circular equal to MxtSiz - 'n'
+
+C
+C<RETURN>
+C                              FILTERS AVAILABLE
+C
+C                        1          2          3         4
+C                      -----      -----      -----     -----
+C                      1,2,1      0,1,0      1,1,1     1,1,1
+C                      2,4,2      1,2,1      1,1,1     1,2,1
+C                      1,2,1      0,1,0      1,1,1     1,1,1
+COMMON STOP FILE

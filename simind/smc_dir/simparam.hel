@@ -1,0 +1,22 @@
+COMMON FILE simparam.hel
+C 0 0 0 0
+C          -------------------------------------------------------------
+C          Program that changes PARAMETER statement in programs
+C
+C          SWITCHES:
+C
+C          TA = CHANGE NUMBER OF CRO-TABLES  (SIMIND DEFAULT=3)
+C          BA = CHANGE NUMBER OF BATCHES     (SIMIND DEFAULT=8)
+C          CO = CHANGE NUMBER OF SWITCHES    (COMLIN DEFAULT=10)
+C          SP = CHANGE NUMBER OF PHD-CHAN    (SIMIND DEFAULT=512)
+C          CT = CHANGE NUMBER OF CT-IMAGES   (SIMIND DEFAULT=4)
+C          PR = CHANGE NUMBER OF PROJECTIONS (ATLPRE DEFAULT=128)
+C          MX = CHANGE MATRIX SIZE FOR BOTH I AND J
+C          MI = CHANGE MATRIX SIZE FOR ROW I
+C          MJ = CHANGE MATRIX SIZE FOR COLUMN J
+C          MS = CHANGE MATRIX SIZE FOR SOURCE  MAPS
+C          MC = CHANGE MATRIX SIZE FOR DENSITY MAPS
+C          DF = CHANGE TO DEFAULT VALUES
+C          FR = INCLUDE FREY SCORING ROUTINE (101)
+C          --------------------------------------------------------
+COMMON STOP FILE

@@ -1,0 +1,409 @@
+#1 	There is an error when trying to open the SMC data file saved by the 
+CHANGE program. The specified file may not exit or it can be for some 
+reason a binary file.  
+ 
+Error occurred in routine REAINI.
+#2 	There is an error when reading the SMC data file. Something is 
+probably wrong with the data file. Try to type it to the monitor or read it 
+by the CHANGE program. If this fails, then you have to delete it and create 
+a new file with CHANGE. You here again have to give new input values.  
+ 
+Error occurred in routine REAINI
+#3 	There is an error in the open statement for cross-section data files 
+(with the extension *.cr3). The file may not exit or it can be a binary 
+file. Check in the SMC_DIR directory to see if it exists or if you have 
+type correctly the name of the file in the CHANGE program.  
+ 
+Error occurred in routine REAINI
+#4 	There is an error when reading the cross section data file. Something 
+is wrong with the *.cr3 file. Compare with other *.cr3 files in the SMC_DIR 
+directory to see if you can fix it! You may need to reinstall the file from 
+the distribution.  
+ 
+Error occurred in routine REAINI 
+#5 	There is an existing result file exists in the current directory. The 
+/QF (quit if a file exists) has been used to prevent re-simulation. You may 
+need to delete the old result file and restart the program. 
+#6 	There is an error in the open statement for DMI density map data 
+files. The program cannot open the density file in the specified directory.  
+ 
+Error occurred in routine REAINI. 
+#7 	There is an error when reading the DMI density map data file. Check 
+the number of images in the file and the start block against the 
+characteristics of the density file you have specified by the change 
+program. You may also have give a larger number of images to read in as 
+compared to the number of images in the file.
+#8 	The total size in bytes of the matrix in the voxel phantom 
+(mtxsizi*mtxsizj*ctimages*2 bytes from index 78,79 and 34) must be a factor 
+of 512
+#9 	There is an error when opening the SPECT data file. 
+#10 	There is an error when writing data to the SPECT data file. 
+#11 	There is an error in the open statement for SPECT data files in the 
+routine SPECT.FOR cannot open the acquisition file in the specified output 
+directory.  
+ 
+Error occurred in routine SIMIND.
+#12 	There is an error when writing data to the SPECT data file in the 
+routine SPECT.FOR. Check the disk space, disk quota or other hardware 
+facilities that prevent the program to write extensive data.  
+ 
+Error occurred in routine SIMIND.
+#13 	There is an error in the open statement for BIM binary image data 
+files. The program cannot open a binary image file in the specified output 
+directory.  
+ 
+Error occurred in routine SIMIND.
+#14 	There is an error when writing the BIM binary image data file. Check 
+the disk space, disk quota or other hardware facilities that prevent the 
+program to write extensive data.  
+ 
+Error occurred in routine SIMIND.
+#15 	There is an error when open statement for BIS binary spectra data 
+file. The program cannot open binary energy spectra file in the specified 
+output directory.  
+ 
+Error occurred in routine SIMIND.
+#16 	There is an error when writing the BIS binary spectra data file. 
+Check the disk space, disk quota or other hardware facilities that prevent 
+the program to write extensive data.  
+ 
+Error occurred in routine SIMIND.
+#17 	There is an error when trying to open the RES result file.
+ 
+ 
+Error occurred in routine SIMIND.
+
+
+#18 	There is an error when writing the RES result file. Cannot open 
+result file in the specified output directory. Check the disk space, disk 
+quota or other hardware facilities that prevent the program to write 
+extensive data.  
+ 
+Error occurred in routine OUTPUT.
+#19 	There is an error when writing the Interfile header for SPECT file. 
+Check the disk space, disk quota or other hardware facilities that prevent 
+the program to write extensive data.  
+ 
+Error occurred in routine SIMIND.
+#20 	This phantom is not available.  
+ 
+Error occurred in routine PHANTOM.
+#21 	There is an error when trying to open the source map data file.  
+ 
+Error occurred in routine SMAP.
+#22 	The source maps seem to contain no counts. Check the validity of the 
+source map and then try again!  
+ 
+Error occurred in routine SMAP.
+#23 	When using this type of phantom you must specify a pixel size for the 
+source maps. This pixel size scales the maps to physical dimensions. Give 
+the pixel size at the command line by using the switch /PX:  
+ 
+Error occurred in routine SMAP.
+#24 	There is an error when reading data from the source map file. Check 
+the file integrity or generate a new file!
+#25 	It is not allowed to make a transmission simulation with a 
+collimation angle equal to zero together with a scatter order that is 
+greater than 0.
+#26 	Transmission simulations are not supported together with the internal 
+phantom shapes. You need a file containing a set of density maps that 
+describe the phantom.
+#27 	Error in opening the simind.ini file in the SMC_DIR folder or as 
+specified in the command line or command switch
+#28 	Error in reading the simind.ini file in the SMC_DIR folder or as 
+specified in the command line or command switch
+#29 	The total size of the energy spectra data (2*number of 
+channels*4byte) must be a factor of 512. 
+#30 	The total size in bytes of the matrix (mtxsizi*mtxsizj*4bytes) must 
+be a factor of 512
+#31 	You have given an illegal source dimensions for the selected source 
+type. Define better values by using the CHANGE program or check the values 
+of your switches.
+#32 	The pixel size for the image is set to zero! Define a better value 
+using the CHANGE program or check the values of your switches.
+#33 	The thickness of the protecting cover is defined to zero! Define a 
+better value using the CHANGE program or check your switches.  
+ 
+Error occurred in routine REAINI.
+#34 	No value for the keV/channel for the energy spectrum has been 
+defined.  
+ 
+Error occurred in routine REAINI.
+#35 	The phantom dimensions are less than the source dimensions.  You need 
+to change this to a phantom size greater than the source dimensions.  
+ 
+Error occurred in routine REAINI.
+#36 	The source dimension is larger that the phantom dimension! This is 
+not allowed. Define a better value using the CHANGE program or check your 
+switches.  
+ 
+Error occurred in routine REAINI.
+#37 	The collimator file seems to be corrupted. Check it and see if you 
+have the latest version. If you have added a record to it then is sure that 
+it has the same format as the default collimator records. Otherwise you may 
+have a read error!  
+ 
+Error occurred in routine REAINI.
+#38 	The selected collimator code is not defined in the file collim.col 
+located in the SMC_DIR directory.  
+ 
+Error occurred in routine REAINI.
+#39 	There is an error in the open Statement for the INTERFILE header 
+file.
+#40 	There is an error when writing the INTERFILE header file. Check disk 
+space, disk quota or other hardware facilities
+
+
+#41 	The number of selected density maps is less than 1. Change index 33 
+in CHANGE to a better value.
+#42 	This version does not support photon entrance on the side of the 
+crystal. Currently this option is a work-in-progress.
+#43 	The cut-off energy is higher than the lowest energy threshold of the 
+energy window. The program is terminated because this would most likely 
+generate wrong results 
+#44 	The format for the *.zub file that you are using is of an older 
+version. You have to use the new version for which there is a template in 
+the smc_dir directory called vox_man.zub. Modify the section you are using 
+and remember to define that section in change index 45. If you use vox_man 
+or vox_man3 then the code section should be 1. If you use the Zubal brain 
+phantom the code section should be set to 2 in index 45.
+#45 	The dimension of the non-homogeneous phantom is in some point larger 
+than the distance to the detector. You might hereby create a logical 
+detector/phantom crash. Reduce the CT pixel size (Index 31) or increase the 
+distance to the detector (Index 12). 
+#46 	The Zubal file you have specified and located in the current 
+directory or the special SMC_DIR directory can not be opened. Check the 
+directory to see if the file is missing or the file name has been miss-
+spelled.
+#47 	The special input file that defined the tumor locations cannot be 
+opened. Normally, this has the same main file name as the input file but 
+with the extension *.inp. The default name is 'smap.inp'.
+#48 	The input file, with an extension of *.zub, that defines the activity 
+concentration for the 'vox_man.dat' located in the special SMC_DIR 
+directory can not be read from. Check the content of the file to see if 
+some illegal character has been typed or if the column does not match for 
+all values. In the SMC_DIR directory is the template file 'vox_man.zub' 
+that should be OK.  
+ 
+Error occurred in routine SMAP.
+#49 	The binary data file for the Zubal voxelman, voxelbrain or the RSD 
+file cannot be opened. Check the name, specified in the Change program, to 
+see if this has been miss-spelled?  
+ 
+Error occurred in routine SMAP.
+#50 	The Zubal phantom is defined as 128x128 matrix size. You have a 
+version of SIMIND that has been compiled for density maps with a different 
+matrix size. Use the command "simparam simind.for/mc:128" to change the 
+matrix size and then recompile with the command procedure compsmc
+#51 	Error in open the INTERFILE key file 'intfile.key' in the special 
+SMC_DIR directory.
+#52 	Error in reading the keys from the INTERFILE key file 'intfile.key' 
+in the special SMC_DIR directory.
+#53 	Error in reading data from the INTERFILE header.
+#54 	Error in writing data to the INTERFILE header.
+#55 	The Zubal phantom is defined as 128x128 matrix size. You have a 
+version of SIMIND that has been compile for source maps with a 
+different matrix size. 
+#56 	You have told the program to calculate the pixel size from pixel 
+width of the phantom in the matrices and the value in index 6 that defines 
+the physical width of the phantom. However, the program found that there 
+are no pixels in the phantom matrices.
+
+
+#57 	The number of voxel in the voxel phantom is so many that the 
+current selection of number of photons does not exceed one per voxel. 
+Please give a larger number of photons to be simulated.
+
+#58 	SIMIND DEFAULT SWITCHES
+-----------------------
+
+/CC	Collimator code according to the description in the CHANGE program. 
+Note that you should not include the '*' as is necessary in the CHANGE. 
+For example simind input/cc:ge-legp gives this collimator in the 
+simulation regarding of what is given in the smc file[Character input] 
+
+/CS	Collimator flag: Selects that only geometrical=1, penetration=2 or 
+scattering=3 in the collimator are allowed.
+
+/DF	This switch is used when simulating heart beating and respiratory 
+movements using MCAT/NCAT phantom. Since each segment from MCAT/NCAT has 
+its own image file with a particular number this switch makes a patch to 
+the file name of the density file. For example, suppose you have 
+generated 8 segment of a beating heart using the base name "test". The 
+output from NCAT give you files named test_act_1.bin, 
+test_atn_2.bin,...test_atn_8.bin. If you add the switch /SF:3 then you 
+will use the source map test_act_3.bin even if the input file says test. 
+If this switch is not given then it will open the file test_atn_av.bin as 
+is the standard name for the average source image from ncat
+
+/ES	Energy offset relative to Index 01 in keV for the center energy of 
+the photo peak window. Negative value means lower value than index 1. If 
+this shift is not given then the center value of the energy window is 
+defined by index 1. 
+ 
+/FA	This switch in combination with a number turns off the simulation 
+flag for the corresponding number. For example /FA:5 turns of SPECT 
+simulation. To set a flag to true then use the switch /TR
+
+/FZ	Give the name for the zubal file without the extension 'zub' 
+[Character input]
+
+/FI	Give the name for the isotope file without the extension 'isd' 
+[Character input]
+
+/FD	Base name for the density map (*.dmi) or the NCAT attenuation 
+map[Character input]
+
+/FS	Base name for the source map (*.smi) or the NCAT activity 
+map[Character input]
+
+/I2	Image files are stored as integer*2 matrices. By default a scaling 
+factor is calculated from the first projection so that the maximum in 
+that projection will be 1000. If a data value is gives after /I2 then 
+that value will be used as a scaling factor
+
+/LO	Number of photon histories before printout of the ongoing status 
+line. Require a data value. The default is 1000.
+
+/LF	A samplings technique based on linear sampling of the polar angle 
+for the photon direction is used. Note that this is only useful when 
+simulating the simindc and the scattwinc programs with the new 
+collimator. 
+
+/OR	Parameter that changes the orientation of the density map. Value 2 
+transpose the maps, value 3 swaps the maps so index (1,1) is the lower 
+left and value 4 both transpose and swaps.
+
+/PR	Start simulation at projection number given by the switch. Default 
+value is projection 1.
+
+/PU	In some cases it is more convenient to express the centre of the 
+source in terms of pixel unit instead for cm and let the computer 
+calculate the physical centre position. By using the /PU (= pixel units) 
+switch on can give the shift of the source in pixel units according to $ 
+simind input/16:38/17:128/18:64/PU. From the phantom length and the 
+density pixel size is calculated the true source shift in cm. If the 
+command looks like $ simind input/16:38/17:128/18:64/PU:0.25 then the 
+position is scaled down by a factor of four. It?s used when the pixel 
+units are valid for e.g. a 512 matrix but the actual density map used in 
+the simulation is only a 128 matrix.
+
+/QF	Quit the simulation if an earlier result file exists. This flag is 
+useful if a batch simulation has been ongoing and the computer has been 
+restarted following a power-failure. This may then prevent recalculation 
+of already existing data files.
+
+/SC	Maximum number of scatter orders allowed in the phantom. Require a 
+data value. A large number requires more computing time since more 
+multiple scattered photons will be followed in the phantom. In some case 
+(for example, when simulating images obtained in a narrow energy window) 
+a lower value may be sufficient since the lower energy photon with a low 
+probability is rejected by the energy window. The user must therefore be 
+careful so the proper number of scatter orders is simulated for the 
+particular simulation. It can be necessary to do some 'trial-and-error' 
+simulation. The default value is 3. If scatter order are a negative value 
+the only the scatter distribution is simulated and stored in the images 
+and spectrum.
+
+/SW	Swap the bytes in the integer image file created if the switch /I" 
+have been given. The Interfile file key "number format" is properly set 
+according to the computer that is used. For example, if running on a PC 
+the number format will be BIGENDIAN if /SW is given and LITTLEENDIAN if 
+the running computer is a SUN
+
+/SF	This switch is used when simulating heart beating and respiratoric 
+movements using MCAT/NCAT phantom. Since each segment from MCAT/NCAT has 
+its own image file with a particular number this switch makes a patch to 
+the file name of the density file. For example, suppose you have 
+generated 8 segment of a beating heart using the base name "test". The 
+output from NCAT give you files named test_act_1.bin, 
+test_act_2.bin,...test_act_8.bin. If you add the switch /SF:3 then you 
+will use the source map test_act_3.bin even if the input file says test. 
+If this switch is not given then it will open the file test_act_av.bin as 
+is the standard name for the average source image from ncat
+ 
+/TR:	Turns on simulation flag corresponding to the number. For example, 
+/TR:12 turns on simulation of the energy resolution. 
+
+/TS	A time shift can be added to the date and time description in the 
+interfile header. The initial time and date is set in the simind.ini file 
+and the value of the /TS switch is the extension of this time expressed 
+in hours. Note that it must be a positive value greater or equal to 0.s
+
+/UA	Set the density equal to the data buffer or if not present equal to 
+1.0 (=water). This makes the phantom equal to uniform attenuated 
+regardless of the initial voxel value in the phantom.
+
+/WB	Whole Body Simulation of Anterior and Posterior view. Note that you 
+might need to adjust the Matrix size with simparam and the detector 
+length (index 8)..When this switch is given the following parameters is 
+set
+
+Number of projections = 2
+Interfile = .true.
+Phantom flag = .true.
+Rotation type = 0 (360 degrees)
+
+/XP	Number of split photons emitted from the last interaction point in 
+the phantom. This parameter can be used to increase the statistics in the 
+images.
+
+/Xn	'n' specifies the cross-section that can be changed. The X1-X5 
+refers to the index 9,10,11,12 and 15 in the main CHANGE menu and X6 is 
+the material for the collimator when using the simindc, 
+scattwinc.[Character input]
+
+#59 	The zubal file that you have used is not in the proper format for 
+this version of the code. You have to use the template vox_man.zub in the 
+SMC_DIR directory and add your activity data. Note that this version of 
+vox_man.zub also contains the density for each of the organ and these 
+values are very easy for you to change.
+#60 	An unknown compiler number has been defined in the smc_dir.for 
+file. Please check the list or contact Michael Ljungberg to make an 
+update of SIMIND to the new compiler.
+#61 	An error occurred when trying to open the MCAT source file. Please 
+check if the file exists or if the file name has been miss-spelled.  
+ 
+Error occurred in routine SMAP.
+#62 	An error occurred when trying to read from the input file that 
+defines the tumors. The file name should be the same as the input file 
+but with the extension *.inp
+#63 	An error occurred when trying to open the MCAT phantom file. Please 
+check if the file exists or if the file name has been miss-spelled.
+#64 	An error has occurred when trying to read from the MCAT phantom 
+file. Please check that the number of images that is specified in Index 
+34 is correct and that the start image + the number of images do not 
+exceed the number of images in the file.
+#65 	You have not specified a step size for the simulation of the 
+photons inside the voxel-based phantom. The step size is defined in 
+change index 38 and should be a value that is less than the pixel size of 
+the phantom but not to low in order to keep the computation time down. A 
+value of 1/2 to 1/3 should be OK. 
+#66 	There was an error when reading the *.zub file. Please check the 
+file and the way values are stored again a valid file, such as the file 
+vox_man.zub in the smc_dir directory.  
+ 
+Error occurred in the GET_ZUBAL_DATA routine.
+#67 	The values in the columns of the *.zub seems to be in the wrong 
+positions. Please check the file and the way values are stored again a 
+valid file, such as the file vox_man.zub in the smc_dir directory.  
+ 
+Error occurred in the GET_ZUBAL_DATA routine.
+#68 	There occurred an error when reading the error file ?errors.txt? in 
+the smc_dir directory. Please check if the file are missing or reinstall 
+the program.  
+ 
+Error occurred in the ?errs? routine. 
+
+#69 	No coordinates for the sources could be read from the input file. 
+Please check the file if it has been corrupted.  
+ 
+Error occurred in the ?jaszak.fso? routine
+#70 	An error occurred when trying to read the input file for the jaszak 
+source routine. Please check if it is corrupted or if it does to have 
+read permissions.
+ 
+Error occurred in the ?jaszak.fso? routine 
+#71	 The simulation of an auto-contour path for the camera works only 
+when SPECT has been selected (flag 5)
+

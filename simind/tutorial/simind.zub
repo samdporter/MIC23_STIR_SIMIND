@@ -1,0 +1,500 @@
+== V4.3 Code Section 1 vox_man!======!
+adrenals                  21  1025   1
+bladder                   40  1040   1
+blood pool                23  1060   1
+bone marrow               26  1030   1
+brain                      2  1040   1
+cartilage                 30  1100   1
+cerebellum                77  1040   1
+cerebral aquaduct        122  1040   1
+cerebral falx            113  1040   1
+colon                     19  1030   1
+dens of axis              70  1180   1
+diaphragm                 39  1030   1
+esophagus                 16  1030   1
+eye                      119  1070   1
+fat                       22   950   1
+feces                     33  1010   1
+fluid (bowel)             25  1007   1
+gall bladder              13  1026   1
+gas (bowel)               24   260   1
+hard palate               76  1680   1
+heart                     11  1060   1
+jaw bone                  71  1680   1
+kidney                    14  1050   20
+lacrimal glands           74  1045   1
+lens                     121  1070   1
+lesion                    63  1060   1
+liver                     12  1060   10
+long bones                 8  1330   1
+lungs                     10   260   10
+lymph nodes               27  1030   1
+medulla oblongota         85  1420   1
+optic nerve              106  1070   1
+outside phantom            0  0000   0
+pancreas                  20  1040   1
+pelvis                     7  1290   1
+pharynx                   15  1000   1
+pons                      91  1000   1
+prostate                  35  1045   1
+rectum                    37  1030   1
+rib cage & sternum         6  1410   1
+sinuses                  104  1000   1
+skeletal muscle            9  1050   1
+skin                       1  1090   1
+skull                      4  1610   1
+small bowel               18  1030   1
+spinal canal              75  1038   1
+spinal cord                3  1038   1
+spine                      5  1330   1
+spleen                    31  1060   1
+stomach                   17  1030   1
+teeth                    125  1920   1
+testes                    34  1040   1
+thyroid                   28  1050   1
+tongue                    78  1000   1
+trachea                   29  1000   1
+uncus(ear bones)          99  1180   1
+urine                     32  1030   1
+= Code Section 2 vox_brn =============
+outside phantom            0  0000   0
+skin                       1  1040   0
+brain                      2  1040   0
+spinal cord                3  1040   0
+skull                      4  1220   0
+spine                      5  1220   0
+dens of axis              70  1220   0
+jaw bone                  71  1220   0
+parotid gland             72  1040   0
+skeletal muscle            9  1040   0
+lacrimal glands           74  1040   0
+spinal canal              75  1040   0
+hard palate               76  1220   0
+cerebellum                77  1040   4
+tongue                    78  1040   0
+pharynx                   15  1040   0
+esophagus                 16  1040   0
+horn of mandible          81  1220   0
+nasal septum              82   600   0
+white matter              83  1040   1
+superior sagital sinus    84  1040   0
+medulla oblongota         85  1040   1
+fat                       22  1040   0
+blood pool                23  1040   0
+artificial lesion         88  1040   4
+frontal lobes             89  1040   4
+bone marrow               26  1040   0
+pons                      91  1040   4
+third ventricle           92  1040   0
+trachea                   29  1040   0
+cartilage                 30  1040   0
+occipital lobes           95  1040   4
+hippocampus               96  1040   4
+pituitary gland           97  1040   4
+cerebral fluid            98  1040   0
+uncus(ear bones)          99  1220   0
+turbinates               100   600   0
+caudate nucleus          101  1040   4
+zygoma                   102  1220   0
+insula cortex            103  1040   4
+sinuses/mouth cavity     104   600   0
+putamen                  105  1040   4
+optic nerve              106  1040   1
+internal capsul          107  1040   1
+septum pellucidium       108  1040   1
+thalamus                 109  1040   4
+eyeball                  110  1040   0
+corpus collosum          111  1040   1
+special region frontlobe 112  1040   4
+cerebral falx            113  1040   1
+temporal lobes           114  1040   4
+fourth ventricle         115  1040   0
+frontal portion eyes     116  1040   0
+parietal lobes           117  1040   4
+amygdala                 118  1040   4
+eye                      119  1040   0
+globus pallidus          120  1040   4
+lens                     121  1040   0
+cerebral aquaduct        122  1040   0
+lateral ventricles       123  1040   0
+prefrontal lobes         124  1040   4
+teeth                    125  2220   0
+lesion                    63  1040   0
+= Code Section 3 RSD =============
+outside phantom            0  0000   0
+air cavitites              1    10   0
+lung left                  2   300   0
+lung right                 3   300   0
+plastic surrounding        4  1100   0
+myocardium                 5  1000   0
+infarct 1                  6  1000   0
+infarct 2                  7  1000   0
+infarct 3                  8  1000   0
+liver                      9  1000   0
+skull                     10  1860   0
+skeletal tissue           11  1500   0
+brain                     12  1000   0
+striatum 1                13  1000   0
+striatum 2                14  1000   0
+striatum 3                15  1000   0
+striatum 4                16  1000   0
+water                     17  1000   0
+nasal cavities            18   230   0
+free                      19  1000   0
+free                      20  1000   0
+free                      21  1000   0
+free                      22  1000   0
+free                      23  1000   0
+free                      24  1000   0
+free                      25  1000   0
+free                      26  1000   0
+free                      27  1000   0
+free                      28  1000   0
+free                      29  1000   0
+free                      30  1000   0
+free                      31  1000   0
+free                      32  1000   0
+= Code Section 4 NCAT =============
+hrt_myoLV_act              1  1040   51
+hrt_myoRV_act              2  1040   51
+hrt_myoLA_act              3  1040   51
+hrt_myoRA_act              4  1040   51
+hrt_bldplLV_act            5  1000   51
+hrt_bldplRV_act            6  1000   19
+hrt_bldplLA_act            7  1000   19
+hrt_bldplRA_act            8  1000   19
+body                       9  1040   19
+liver                     10  1060   16
+gall_bladder              11  1026   27
+lung                      12   394   8
+st_wall                   13  1030   8
+st_cnts                   14  1000   8
+kidney                    15  1050   8
+spleen                    16  1060   312
+rib                       17  1400   35
+spine                     18  1400   8
+bone_cartilage            19  1400   8
+artary                    20  1000   6
+vein                      21  1000   51
+bladder                   22  1000   51
+prostate                  23  1045   1
+ascend_large_intest       24  1030   8
+transc_large_intest       25  1030   0
+desc_large_intest         26  1030   0
+rectum                    27  1030   0
+sem_vess                  28  1000   8
+vas_def                   29  1000   16
+testicular                30  1000   16
+ascend large_int air      31  1000   15
+transve large_intest ai   32  1000   0
+descend large_intest ai   33  1000   0
+rectum air                34  1000   0
+ureter                    35  1000   0
+urethra                   36  1000   16
+lymph normal              37  1000   16
+lymph abnormal            38  1000   8
+free                      39  1000   8
+free                      40  1000   0
+free                      41  1000   0
+free                      42  1000   0
+free                      43  1000   0
+free                      44  1000   0
+free                      45  1000   0
+free                      46  1000   0
+free                      47  1000   0
+free                      48  1000   0
+free                      49  1000   0
+free                      50  1000   0
+= Code Section 5 MOBY =============
+hrt_myoLV_act              1  1000   0
+hrt_myoRV_act              2  1000   0
+hrt_myoLA_act              3  1000   0
+hrt_myoRA_act              4  1000   0
+hrt_bldplLV_act            5  1000   0
+hrt_bldplRV_act            6  1000   0
+hrt_bldplLA_act            7  1000   0
+hrt_bldplRA_act            8  1000   0
+body                       9  1000   0
+liver                     10  1000   0
+lung                      11  1000   0
+st_wall                   12  1000   0
+st_cnts                   13  1000   0
+pancreas                  14  1000   0
+kidney                    15  1000   0
+spleen                    16  1000   0
+small intestine           17  1000   0
+large intestine           18  1000   0
+bladder                   19  1000   0
+vascular defens           20  1000   0
+testicular                21  1000   0
+rib                       22  1000   0
+spine                     23  1000   0
+brain background          24  1000   0
+neo_white                 25  1000   0
+neo_gray                  26  1000   0
+cere_white                27  1000   0
+cere_gray                 28  1000   0
+cere nucleus              29  1000   0
+thalamus                  30  1000   0
+hippocamp                 31  1000   0
+thyroid                   32  1000   0
+free                      33  1000   0
+free                      34  1000   0
+free                      35  1000   0
+free                      36  1000   0
+free                      37  1000   0
+free                      38  1000   0
+free                      39  1000   0
+free                      40  1000   0
+free                      41  1000   0
+free                      42  1000   0
+free                      43  1000   0
+free                      44  1000   0
+= Code Section 6 ORLN =============
+Nothing                    0  0000   0
+Trunk                      1  1040   0
+Head                       2  1040   0
+Legs                       3  1040   0
+Leg bones                  4  1400   0
+Arm bones                  5  1400   0
+Pelvis                     6  1400   0 
+Spine                      7  1400   0
+Rib cage                   8  1400   0
+Clavicles                  9  1400   0
+Skull                     10  1400   0 
+Scapulae                  11  1400   0
+Adrenals                  20  1040   0
+Brain                     21  1040   0
+Heart                     22  1040   0
+Kidneys                   23  1040   9
+Lungs                     24   392   11
+Ovaries                   25  1040   1
+Pancreas                  26  1040   0
+Spleen                    27  1040   0
+Testes                    28  1040   12
+Thymus                    29  1040   0
+Thyroid                   30  1040   0
+Bladder                   31  1040   0
+Bladder cont.             32  1040   0
+Uterus                    33  1040   0
+Gall bladd                50  1040   0
+Gall b.cont               51  1040   0
+Stomach wall              52  1040   0
+Stom.cont                 53  1040   0
+Asc.colon                 54  1040   0
+As.col.cont               55  1040   0
+Trans.colon               56  1040   0
+Tr.col.cont               57  1040   0
+Desc.colon                58  1040   0
+Dsc.col.cont              59  1040   0
+Sigmoid                   60  1040   0
+Sigmoid cont              61  1040   0
+Small intest              62  1040   0
+Liver                     63  1040   0 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

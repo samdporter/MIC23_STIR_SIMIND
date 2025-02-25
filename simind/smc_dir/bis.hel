@@ -1,0 +1,24 @@
+COMMON FILE bis.hel
+C 0 0 0 0
+C         OPTION:  AS:   ASCII  from BINARY:    BIS- > PRN (def)
+C                  BI:   BINARY from  ASCII:    PRN -> BIS
+C                 /CO:   Convolve with Gaussion. FWHM='value'*0.1
+C                 /CP:   Clear point (if zero then it will be the last)
+C                 /+*-:  Algebra with files
+C                 /SM:   Smoothing with filter = 'value'
+C                 /SP:   Start Convert Spektrum Number
+C                 /LT:   Lower  Limit Integration (CHANNEL)
+C                 /UT:   Higher Limit Integration (CHANNEL)
+C                 /XM:   Multiply 'value' to X-values (Slice)
+C                 /XA:   Addition 'value' to  X-values (Slice)
+C                 /YM:   Multiply 'value' to  Y-values (Slice)
+C                 /YA:   Addition 'value' to  Y-values (Slice)
+C                 /NP:   Normalize Peak to 'value'
+C                 /NA:   Normalize Area to 'value'
+C                 /CH:   New keV/channel
+C                 /-O:   NO ouput to terminal
+C                 /HI:   Generate a histograme in the prn file
+C                 /MX:   Maximum number of data point
+C                 /1R:   Generate Y-values only
+C                 /NC:   Number of channels in the BIS spectra
+COMMON STOP FILE
