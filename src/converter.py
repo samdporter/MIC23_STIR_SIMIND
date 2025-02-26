@@ -43,7 +43,7 @@ class Converter:
                 return prefix + line, dir_switch
         
         if "Radius" in line:
-            res =  f"Radius := {float(line.split()[3])*10}"
+            res =  f"Radius := {float(line.split()[3])}"
         elif "orbit" and "noncircular" in line: 
             res =  f"orbit := non-circular"
         elif "!number format := short float" in line:
