@@ -44,4 +44,9 @@ simind.res
 scattwin.win
 output.smc
 
+# project output files
+output/*
+scripts/project_scripts/sim_iter_*.o*
+scripts/project_scripts/init_osem_*.o*
+
 

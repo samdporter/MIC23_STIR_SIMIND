@@ -8,6 +8,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Reconstruct with OSEM')
 
 parser.add_argument('--data_path', type=str, default="/home/storage/copied_data/data/phantom_data/for_cluster/SPECT", help='data path')
+parser.add_argument('--output_path', type=str, default="/home/storage/copied_data/data/phantom_data/for_cluster/SPECT", help='output path')
 parser.add_argument('--num_subsets', type=int, default=12, help='number of subsets')
 parser.add_argument('--num_epochs', type=int, default=10, help='number of epochs')
 # default additive path to None but expect string
@@ -19,18 +20,19 @@ def get_spect_data(path):
 
     spect_data = {}
     spect_data["acquisition_data"] = AcquisitionData(os.path.join(path,  "peak.hs"))
-    try:
-        spect_data["attenuation"] = ImageData(os.path.join(path,  "umap.hv"))
-    except:
-        spect_data["attenuation"] = ImageData(os.path.join(path,  "umap_zoomed.hv"))
+    spect_data["attenuation"] = ImageData(os.path.join(path,  "umap_zoomed.hv"))
     #attn_arr = spect_data["attenuation"].as_array()
     #attn_arr = np.flip(attn_arr, axis=-1)
     #spect_data["attenuation"].fill(attn_arr)
-    spect_data["initial_image"] = ImageData(os.path.join(path,  "initial_image.hv")).maximum(0)
+    try:
+        spect_data["initial_image"] = ImageData(os.path.join(path,  "initial_image.hv")).maximum(0)
+    except:
+        spect_data["initial_image"] = ImageData(os.path.join(path,  "template_image.hv"))
+        spect_data["initial_image"].fill(1)
 
     return spect_data
 
-def get_spect_am(spect_data, keep_all_views_in_cache=True):
+def get_spect_am(spect_data, keep_all_views_in_cache=False):
     spect_am_mat = SPECTUBMatrix()
     spect_am_mat.set_attenuation_image(spect_data["attenuation"])
     spect_am_mat.set_keep_all_views_in_cache(keep_all_views_in_cache)
@@ -74,9 +76,13 @@ if __name__ == "__main__":
     msg = MessageRedirector()
     
     args = parser.parse_args()
-    spect = main(args.data_path)
     suffix = f"osem_i{args.num_epochs}_s{args.num_subsets}"
+
+    print(f"Reconstructing {args.data_path} with {args.num_epochs} epochs and {args.num_subsets} subsets")
+    
+    spect = main(args.data_path)
     if args.smoothing:
         suffix += "_smoothed"
-    spect.write(os.path.join(args.data_path, f"recon_{suffix}_{args.index}.hv"))
+    spect.write(os.path.join(args.output_path, f"recon_{suffix}_{args.index}.hv"))
 
+    print(f"Reconstruction done, saved to {args.output_path}")
