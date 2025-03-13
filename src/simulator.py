@@ -7,6 +7,7 @@ Author: Sam Porter
 """
 
 import os
+import re
 import subprocess
 from pathlib import Path
 import numpy as np
@@ -351,8 +352,10 @@ class SimindSimulator:
         """Get output files from SIMIND simulation."""
         if self.output is not None and len(self.output) > 0:
             return self.output
+        
         converter = Converter()
         output_strings = ["_air_w", "_sca_w", "_tot_w", "_pri_w"]
+        
         if not self.files_converted:
             h00_files = [
                 f for f in os.listdir(self.output_dir)
@@ -363,12 +366,18 @@ class SimindSimulator:
                 converter.convert(os.path.join(self.output_dir, f))
                 logging.info(f"Converted {f}")
             self.files_converted = True
+        
         hs_files = [
             f for f in os.listdir(self.output_dir)
             if f.endswith('.hs') and any(s in f for s in output_strings)
             and self.output_filepath.name in f
         ]
-        hs_files.sort(key=lambda f: int(f.split('_')[-1].split('.')[0][1:]))
+        
+        def extract_window_number(filename):
+            match = re.search(r'w(\d+)\.hs$', filename)
+            return int(match.group(1)) if match else float('inf')
+        
+        hs_files.sort(key=extract_window_number)
         output = {}
         for f in hs_files:
             f_split = f.split('_')
@@ -377,18 +386,19 @@ class SimindSimulator:
             file_path = os.path.join(self.output_dir, f)
             output_key = f"{scat_type}_{window}"
             output[output_key] = AcquisitionData(file_path)
+            
             if self.template_sinogram is not None:
-                output[output_key] = converter.adjust_values(
-                    self.template_sinogram, output[output_key], threshold=None
+                converter.adjust_values(
+                    self.template_sinogram, file_path, threshold=None
                 )
             else:
-                output[output_key] = converter.convert_sinogram_parameter(
+                converter.convert_sinogram_parameter(
                     output[output_key], "scaling factor (mm/pixel) [1]", self.source.voxel_sizes()[1]
                 )
-                output[output_key] = converter.convert_sinogram_parameter(
+                converter.convert_sinogram_parameter(
                     output[output_key], "scaling factor (mm/pixel) [2]", self.source.voxel_sizes()[2]
                 )
-                output[output_key] = converter.convert_sinogram_parameter(
+                converter.convert_sinogram_parameter(
                     output[output_key], "Radius", 10 * float(self.config.get_value("height_to_detector_surface"))
                 )
         self.output = output

@@ -79,6 +79,10 @@ class Converter:
         """
         if output_adjusted_file is None:
             output_adjusted_file = file_to_adjust[:-4] + "_adjusted.h00"
+            
+        if isinstance(reference_file, AcquisitionData):
+            reference_file.write("tmp_ref.hs")
+            reference_file = "tmp_ref.hs"
 
         with open(reference_file, "r") as ref_file, open(file_to_adjust, "r") as to_adjust_file:
             reference_lines = {line.split(":=")[0].strip(): line.split(":=")[1].strip() for line in ref_file if ":=" in line}
@@ -97,6 +101,9 @@ class Converter:
         
         with open(output_adjusted_file, "w") as out:
             out.writelines(adjust_lines)
+            
+        if isinstance(reference_file, str) and "tmp_ref.hs" in reference_file:
+            os.remove(reference_file)
         
         return AcquisitionData(output_adjusted_file)
 
