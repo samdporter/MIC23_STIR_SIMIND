@@ -70,7 +70,7 @@ def main():
         help="Filename pattern for image files (default: 'recon_osem.hv')"
     )
     parser.add_argument(
-        '--output_file', type=str, required=True,
+        '--output_file_prefix', type=str, required=True,
         help="Output file for mean scatter image"
     )
     parser.add_argument(
@@ -112,7 +112,10 @@ def main():
     spect_am = get_spect_am(spect_data, keep_all_views_in_cache=False)
     spect_am.set_up(spect_data["acquisition_data"], spect_data["initial_image"])
 
-    image = ImageData(os.path.join(args.input_dir, args.image_pattern))
+    image_files = glob.glob(os.path.join(args.input_dir, args.image_pattern))
+    if not image_files:
+        raise ValueError(f"No image files found matching {args.image_pattern} in {args.input_dir}")
+    image = ImageData(image_files[0])
     forward = spect_am.forward(image)
 
     attenuation_image = image.clone()
@@ -131,12 +134,29 @@ def main():
 
     scatter_scaling = forward_counts / sum_trues_counts
     print(f"Scatter scaling factor: {scatter_scaling}")
+    # save scatter scaling factor
+    with open(args.output_file_prefix + "_scatter_scaling.txt", "w") as f:
+        f.write(f"{scatter_scaling}")
 
     mean_scatter = sum_scatter * scatter_scaling
-    mean_scatter.write(args.output_file)
+    mean_scatter.write(args.output_file + "_scatter.hs")
     print(
         f"Mean scatter image computed from {len(scatter_files)} files and "
-        f"written to {args.output_file}"
+        f"written to {args.output_file}_scatter.hs"
+    )
+
+    mean_total = sum_total * scatter_scaling
+    mean_total.write(args.output_file + "_total.hs")
+    print(
+        f"Mean total image computed from {len(total_files)} files and "
+        f"written to {args.output_file}_total.hs"
+    )
+
+    mean_trues = sum_trues * scatter_scaling
+    mean_trues.write(args.output_file + "_trues.hs")
+    print(
+        f"Mean trues image computed from {len(total_files)} files and "
+        f"written to {args.output_file}_trues.hs"
     )
 
     if args.delete_files:
