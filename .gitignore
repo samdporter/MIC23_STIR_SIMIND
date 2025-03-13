@@ -48,5 +48,7 @@ output.smc
 output/*
 scripts/project_scripts/sim_iter_*.o*
 scripts/project_scripts/init_osem_*.o*
+scripts/project_scripts/osem_*.o*
+scripts/project_scripts/sum_iter_*.o*
 
 
