@@ -20,10 +20,10 @@ fi
 $PYTHON ${BASE_DIR}/simulation_script.py \
     --total_activity=${TOTAL_ACTIVITY} \
     --time_per_projection=40 \
-    --photon_multiplier=10 \
-    --photopeak_energy=150 \
-    --window_lower=75 \
-    --window_upper=225 \
+    --photon_multiplier=${PHOTON_MULTIPLIER} \
+    --photopeak_energy=${PHOTON_ENERGY} \
+    --window_lower=${WINDOW_LOWER} \
+    --window_upper=${WINDOW_UPPER} \
     --source_type="y90_frey" \
     --collimator="ma-megp" \
     --kev_per_channel=10 \

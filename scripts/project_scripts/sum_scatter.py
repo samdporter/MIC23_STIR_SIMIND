@@ -139,24 +139,24 @@ def main():
         f.write(f"{scatter_scaling}")
 
     mean_scatter = sum_scatter * scatter_scaling
-    mean_scatter.write(args.output_file + "_scatter.hs")
+    mean_scatter.write(args.output_file_prefix + "_scatter.hs")
     print(
         f"Mean scatter image computed from {len(scatter_files)} files and "
-        f"written to {args.output_file}_scatter.hs"
+        f"written to {args.output_file_prefix}_scatter.hs"
     )
 
     mean_total = sum_total * scatter_scaling
-    mean_total.write(args.output_file + "_total.hs")
+    mean_total.write(args.output_file_prefix + "_total.hs")
     print(
         f"Mean total image computed from {len(total_files)} files and "
-        f"written to {args.output_file}_total.hs"
+        f"written to {args.output_file_prefix}_total.hs"
     )
 
     mean_trues = sum_trues * scatter_scaling
-    mean_trues.write(args.output_file + "_trues.hs")
+    mean_trues.write(args.output_file_prefix + "_trues.hs")
     print(
         f"Mean trues image computed from {len(total_files)} files and "
-        f"written to {args.output_file}_trues.hs"
+        f"written to {args.output_file_prefix}_trues.hs"
     )
 
     if args.delete_files:
