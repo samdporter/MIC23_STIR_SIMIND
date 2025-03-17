@@ -91,7 +91,7 @@ class STIRSPECTImageDataBuilder:
         return image_data
     
     @staticmethod
-    def create_spect_uniform_image(sinogram, origin=None):
+    def create_spect_uniform_image_from_sinogram(sinogram, origin=None):
         """
         Create a uniform image for SPECT data based on the sinogram dimensions.
 
@@ -174,7 +174,7 @@ class STIRSPECTAcquisitionDataBuilder:
         """
         self.header.update(updates)
 
-    def build(self, output_path=None, return_acqdata=False):
+    def build(self, output_path=None):
         """
         Build and return the STIR AcquisitionData object.
         """
@@ -208,17 +208,57 @@ class STIRSPECTAcquisitionDataBuilder:
         self.pixel_array.tofile(output_path + '.s')
 
         # Create the AcquisitionData object from the header file.
-        if return_acqdata:
-            acqdata = AcquisitionData(header_path)
-            acqdata = acqdata.clone().fill(self.pixel_array)
+        # We do this and fill because of the ordering described above.
+        acqdata = AcquisitionData(header_path)
+        acqdata = acqdata.clone().fill(self.pixel_array)
+        acqdata.write(header_path)
+
+        # now we need to rewrite the header file
+        with open(header_path, 'w') as f:
+            for key, value in self.header.items():
+                f.write(f"{key} := {value}\n")
 
         # Clean up temporary files.
         if output_path == 'temp':
             os.remove(header_path)
             os.remove(raw_file_path)
 
-        if return_acqdata:
-            return acqdata
+        return acqdata
+
+    def build_multi_energy(self, output_path_base='temp'):
+        """
+        If multiple energy windows are available (as extracted in self.energy_windows),
+        build and save separate AcquisitionData files for each energy window.
+        
+        Files are saved with a suffix indicating the energy window number.
+        
+        Returns:
+            list: A list of AcquisitionData objects (one per energy window).
+        """
+        if not hasattr(self, 'energy_windows') or not self.energy_windows:
+            warnings.warn("No energy window information found. Using standard build().")
+            acqdata = self.build(output_path=output_path_base)
+            return [acqdata]
+        
+        # number of projections needs dividing by number of energy windows
+        num_projections = int(self.header.get('!number of projections', 1))
+        num_projections //= len(self.energy_windows)
+        self.header['!number of projections'] = str(num_projections)
+
+        # split pixel_array into energy windows along 3rd axis
+        pixel_array_list = np.array_split(self.pixel_array, len(self.energy_windows), axis=2)
+
+        acqdata_list = []
+        for idx, ew in enumerate(self.energy_windows):
+            # Update header for this energy window.
+            self.header['energy window lower level[1]'] = ew['lower']
+            self.header['energy window upper level[1]'] = ew['upper']
+            suffix = f"_ew{idx+1}"
+            output_path = output_path_base + suffix
+            self.pixel_array = pixel_array_list[idx]
+            acqdata = self.build(output_path=output_path)
+            acqdata_list.append(acqdata)
+        return acqdata_list
 
     def update_header_from_dicom(self, dicom_filepath):
         """
@@ -257,75 +297,7 @@ class STIRSPECTAcquisitionDataBuilder:
         except Exception as e:
             warnings.warn("Error accessing NumberOfFrames from DICOM: " + str(e))
 
-        # (Rotation information remains unchanged)
-        mean_radial_position = 0.0
-        try:
-            if (0x0054, 0x0052) in ds:
-                rot_seq = ds[(0x0054, 0x0052)].value
-                if len(rot_seq) > 0:
-                    rot_item = rot_seq[0]
-                    if 'StartAngle' in rot_item:
-                        self.header['start angle'] = str(rot_item.StartAngle)
-                    elif (0x0054, 0x0200) in rot_item:
-                        self.header['start angle'] = str(rot_item[(0x0054, 0x0200)].value)
-                    if 'RotationDirection' in rot_item:
-                        rd = str(rot_item.RotationDirection)
-                        self.header['!direction of rotation'] = 'CCW' if rd == 'CC' else ('CW' if rd == 'C' else rd)
-                    elif (0x0018, 0x1140) in rot_item:
-                        rd = str(rot_item[(0x0018, 0x1140)].value)
-                        self.header['!direction of rotation'] = 'CCW' if rd == 'CC' else ('CW' if rd == 'C' else rd)
-                    if 'ScanArc' in rot_item:
-                        self.header['!extent of rotation'] = str(rot_item.ScanArc)
-                    elif (0x0018, 0x1143) in rot_item:
-                        self.header['!extent of rotation'] = str(rot_item[(0x0018, 0x1143)].value)
-                    if (0x0018, 0x1142) in rot_item:
-                        rp_val = rot_item[(0x0018, 0x1142)].value
-                        if isinstance(rp_val, (list, tuple)) or hasattr(rp_val, '__iter__'):
-                            values = [float(x) for x in rp_val]
-                            mean_radial_position = sum(values) / len(values)
-                        else:
-                            mean_radial_position = float(rp_val)
-                    else:
-                        warnings.warn("Mean radial position not found in Rotation Information Sequence. Using default 0.0.")
-                else:
-                    warnings.warn("Rotation Information Sequence is empty.")
-            else:
-                warnings.warn("Rotation Information Sequence not found in DICOM.")
-        except Exception as e:
-            warnings.warn("Error processing Rotation Information Sequence: " + str(e))
-
-        # Update radial position from Detector Information Sequence & Tomo View Offset.
-        try:
-            det_info_seq_tag = (0x0055, 0x1022)
-            tomo_view_offset_tag = (0x0013, 0x101e)
-            if det_info_seq_tag in ds:
-                det_seq = ds[det_info_seq_tag].value
-                if len(det_seq) > 0:
-                    det_item = det_seq[0]
-                    if tomo_view_offset_tag in det_item:
-                        tvo = det_item[tomo_view_offset_tag].value
-                        if (hasattr(tvo, '__iter__') or isinstance(tvo, (list, tuple))) and len(tvo) > 1:
-                            # Here we decide the orbit type by checking if the offsets vary.
-                            radial_positions = [mean_radial_position + float(tvo[i])
-                                                for i in range(2, min(len(tvo), 360), 3)]
-                            print(len(radial_positions))
-                            if all(r == radial_positions[0] for r in radial_positions):
-                                self.header['Radius'] = str(radial_positions[0])
-                                self.header['orbit'] = 'circular'
-                            else:
-                                self.header['Radii'] = "{" + ','.join(str(r) for r in radial_positions) + "}"
-                                self.header['orbit'] = 'non-circular'
-                                self.header.pop('Radius', None)
-                        else:
-                            self.header['Radius'] = str(mean_radial_position + float(tvo))
-                            self.header['orbit'] = 'circular'
-            else:
-                self.header['Radius'] = str(mean_radial_position)
-                self.header['orbit'] = 'circular'
-        except Exception as e:
-            warnings.warn("Error processing radial position data from DICOM: " + str(e))
-
-        # Extract energy window information
+            # Extract energy window information
         try:
             ewi_seq_tag = (0x0054, 0x0012)
             self.energy_windows = []  # list to hold each energy window's info
@@ -354,6 +326,81 @@ class STIRSPECTAcquisitionDataBuilder:
                 warnings.warn("Energy Window Information Sequence not found in DICOM.")
         except Exception as e:
             warnings.warn("Error processing Energy Window Information Sequence: " + str(e))
+
+        # Process Rotation Information Sequence.
+        try:
+            if (0x0054, 0x0052) in ds:
+                rot_seq = ds[(0x0054, 0x0052)].value
+                if len(rot_seq) > 0:
+                    rot_item = rot_seq[0]
+                    if 'StartAngle' in rot_item:
+                        self.header['start angle'] = str(rot_item.StartAngle)
+                    elif (0x0054, 0x0200) in rot_item:
+                        self.header['start angle'] = str(rot_item[(0x0054, 0x0200)].value)
+                    if 'RotationDirection' in rot_item:
+                        rd = str(rot_item.RotationDirection)
+                        self.header['!direction of rotation'] = 'CCW' if rd == 'CC' else ('CW' if rd == 'C' else rd)
+                    elif (0x0018, 0x1140) in rot_item:
+                        rd = str(rot_item[(0x0018, 0x1140)].value)
+                        self.header['!direction of rotation'] = 'CCW' if rd == 'CC' else ('CW' if rd == 'C' else rd)
+                    if 'ScanArc' in rot_item:
+                        self.header['!extent of rotation'] = str(rot_item.ScanArc)
+                    elif (0x0018, 0x1143) in rot_item:
+                        self.header['!extent of rotation'] = str(rot_item[(0x0018, 0x1143)].value)
+                    if (0x0018, 0x1142) in rot_item:
+                        rp_val = rot_item[(0x0018, 0x1142)].value
+                        # Check if rp_val is iterable (and not a string) with multiple values.
+                        if (hasattr(rp_val, '__iter__') and not isinstance(rp_val, str) and len(rp_val) > 1):
+                            # Use the array values directly as the radii of rotation.
+                            rp_list = [float(x) for x in rp_val]
+                            self.header['Radii'] = "{" + ','.join(str(r) for r in rp_list) + "}"
+                            self._use_direct_radii = True
+                        else:
+                            mean_radial_position = float(rp_val)
+                            self._use_direct_radii = False
+                    else:
+                        warnings.warn("Mean radial position not found in Rotation Information Sequence. Using default 0.0.")
+                        mean_radial_position = 0.0
+                        self._use_direct_radii = False
+                else:
+                    warnings.warn("Rotation Information Sequence is empty.")
+            else:
+                warnings.warn("Rotation Information Sequence not found in DICOM.")
+        except Exception as e:
+            warnings.warn("Error processing Rotation Information Sequence: " + str(e))
+
+        # Update radial position using Detector Information Sequence & Tomo View Offset,
+        # but only if we did not already set radii directly.
+        try:
+            if not getattr(self, '_use_direct_radii', False):
+                det_info_seq_tag = (0x0055, 0x1022)
+                tomo_view_offset_tag = (0x0013, 0x101e)
+                if det_info_seq_tag in ds:
+                    det_seq = ds[det_info_seq_tag].value
+                    if len(det_seq) > 0:
+                        det_item = det_seq[0]
+                        if tomo_view_offset_tag in det_item:
+                            tvo = det_item[tomo_view_offset_tag].value
+                            if (hasattr(tvo, '__iter__') or isinstance(tvo, (list, tuple))) and len(tvo) > 1:
+                                # Compute radial positions by adding tomo view offsets to the mean radial position.
+                                radial_positions = [mean_radial_position + float(tvo[i])
+                                                    for i in range(2, min(len(tvo), 360), 3)]
+                                if all(r == radial_positions[0] for r in radial_positions):
+                                    self.header['Radius'] = str(radial_positions[0])
+                                    self.header['orbit'] = 'circular'
+                                else:
+                                    self.header['Radii'] = "{" + ','.join(str(r) for r in radial_positions) + "}"
+                                    self.header['orbit'] = 'non-circular'
+                                    self.header.pop('Radius', None)
+                            else:
+                                self.header['Radius'] = str(mean_radial_position + float(tvo))
+                                self.header['orbit'] = 'circular'
+                else:
+                    self.header['Radius'] = str(mean_radial_position)
+                    self.header['orbit'] = 'circular'
+            # If _use_direct_radii is True, we already set 'Radii' and skip tomo offset processing.
+        except Exception as e:
+            warnings.warn("Error processing radial position data from DICOM: " + str(e))
 
         # (Remaining updates: study date, acquisition number, manufacturer, etc.)
         try:
@@ -397,39 +444,3 @@ class STIRSPECTAcquisitionDataBuilder:
             self.pixel_array = np.expand_dims(self.pixel_array, axis=0)
         except AttributeError:
             warnings.warn("Pixel data not found in DICOM.")
-
-
-    def build_multi_energy(self, output_path_base='temp'):
-        """
-        If multiple energy windows are available (as extracted in self.energy_windows),
-        build and save separate AcquisitionData files for each energy window.
-        
-        Files are saved with a suffix indicating the energy window number.
-        
-        Returns:
-            list: A list of AcquisitionData objects (one per energy window).
-        """
-        if not hasattr(self, 'energy_windows') or not self.energy_windows:
-            warnings.warn("No energy window information found. Using standard build().")
-            acqdata = self.build(output_path=output_path_base, return_acqdata=True)
-            return [acqdata]
-        
-        # number of projections needs dividing by number of energy windows
-        num_projections = int(self.header.get('!number of projections', 1))
-        num_projections //= len(self.energy_windows)
-        self.header['!number of projections'] = str(num_projections)
-
-        # split pixel_array into energy windows along 3rd axis
-        pixel_array_list = np.array_split(self.pixel_array, len(self.energy_windows), axis=2)
-
-        acqdata_list = []
-        for idx, ew in enumerate(self.energy_windows):
-            # Update header for this energy window.
-            self.header['energy window lower level[1]'] = ew['lower']
-            self.header['energy window upper level[1]'] = ew['upper']
-            suffix = f"_ew{idx+1}"
-            output_path = output_path_base + suffix
-            self.pixel_array = pixel_array_list[idx]
-            acqdata = self.build(output_path=output_path, return_acqdata=True)
-            acqdata_list.append(acqdata)
-        return acqdata_list
