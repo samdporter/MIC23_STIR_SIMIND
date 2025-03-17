@@ -18,6 +18,9 @@ class Converter:
     def convert_line(line, dir_switch):
         """
         Converts a single line from SIMIND to STIR format.
+        This basically adds a semicolon to the beginning of irrelevant lines
+        and converts relevant lines to STIR naming conventions.
+        It also adjusts the direction of the angles and the start angle.
         """
         patterns = {
             "program", "patient", "institution", "contact", "ID", "exam type",
@@ -51,6 +54,14 @@ class Converter:
             return f"!name of data file := {file.stem + file.suffix}", dir_switch
         
         return line, dir_switch
+    
+    def edit_line(line, parameter, value):
+        """
+        Edit a parameter in a line.
+        """
+        if parameter in line:
+            return f"{parameter} := {value}"
+        return line
 
     @staticmethod
     def convert(filename, return_object=True):
@@ -71,7 +82,29 @@ class Converter:
 
         logging.info(f"Output written to {stirfilename}")
         return AcquisitionData(stirfilename) if return_object else None
+    
+    @staticmethod
+    def edit_parameter(filename, parameter, value):
+        """
+        Edit a parameter in a header file.
+        """
+        if not filename.endswith(".hs"):
+            logging.error("USAGE: script filename.hs")
+            sys.exit(1)
 
+        with open(filename, "r") as f_in, open("tmp.hs", "w") as f_out:
+            for line in f_in:
+                f_out.write(Converter.edit_line(line.strip(), parameter, value) + "\n")
+        
+        os.remove(filename)
+        os.rename("tmp.hs", filename)
+        logging.info(f"Parameter {parameter} set to {value}")
+        return AcquisitionData(filename)
+
+
+    ### The below is meant to deal with the case where SIMIND rounds values, meaning they differ from the original values.
+    ### This is not currently used bacause it's crap and doesn't work. It's here for reference and possible future improvement.
+    # TODO: Fix this crap
     @staticmethod
     def adjust_values(reference_file, file_to_adjust, threshold=None, output_adjusted_file=None):
         """
@@ -85,12 +118,17 @@ class Converter:
             reference_file = "tmp_ref.hs"
 
         with open(reference_file, "r") as ref_file, open(file_to_adjust, "r") as to_adjust_file:
-            reference_lines = {line.split(":=")[0].strip(): line.split(":=")[1].strip() for line in ref_file if ":=" in line}
+            reference_lines = {}
+            for line in ref_file:
+                if ":=" in line:
+                    key, _, value = line.partition(":=")
+                    reference_lines[key.strip()] = value.strip()
             adjust_lines = to_adjust_file.readlines()
         
         for i, line in enumerate(adjust_lines):
             if ":=" in line:
-                key, value = map(str.strip, line.split(":="))
+                key, _, value = line.partition(":=")
+                key, value = key.strip(), value.strip()
                 if key in reference_lines:
                     try:
                         ref_value, adj_value = float(reference_lines[key]), float(value)
