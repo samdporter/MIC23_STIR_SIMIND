@@ -2,17 +2,20 @@
 
 # Define common variables (adjust paths and parameters as needed)
 PYTHON=python3
-DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/anthropomorphic_phantom_data/SPECT/cylindrical_208"
+DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/anthropomorphic_phantom_data/SPECT/phantom_208"
 BASE_DIR="/home/sporter/synergistic_Y90/MIC23_STIR_SIMIND"
 SCRIPTS_DIR="${BASE_DIR}/scripts/project_scripts"
-SUFFIX="cylindrical_phantom_208"
+SUFFIX="anthro_phantom_208"
 OUTPUT_DIR="${BASE_DIR}/output/${SUFFIX}"
 INITIAL_SUBSETS=12
 INITIAL_EPOCHS=10
 TOTAL_ACTIVITY=264.7 # 187 # 182.8
-PHOTON_MULTIPLIER=1
-NUM_ITERATIONS=1
-NUM_ARRAY_JOBS=100  # Allow overriding with an environment variable or command-line argument
+PHOTON_MULTIPLIER=10
+NUM_ITERATIONS=5
+NUM_ARRAY_JOBS=50  # Allow overriding with an environment variable or command-line argument
+WINDOW_LOWER=75
+WINDOW_UPPER=225
+PHOTON_ENERGY=150
 
 # Ensure the output directory exists
 mkdir -p "${OUTPUT_DIR}"
@@ -57,7 +60,7 @@ for i in $(seq 1 ${NUM_ITERATIONS}); do
         -t 1-${NUM_ARRAY_JOBS} \
         -j y -R y \
         -hold_jid "${PREV_JOB}" \
-        -v ITERATION="${i}",DATA_DIR="${DATA_DIR}",OUTPUT_DIR="${OUTPUT_DIR}",BASE_DIR="${BASE_DIR}",TOTAL_ACTIVITY="${TOTAL_ACTIVITY}",PYTHON="${PYTHON}",INITIAL_SUBSETS="${INITIAL_SUBSETS}",INITIAL_EPOCHS="${INITIAL_EPOCHS}" \
+        -v ITERATION="${i}",DATA_DIR="${DATA_DIR}",OUTPUT_DIR="${OUTPUT_DIR}",BASE_DIR="${BASE_DIR}",TOTAL_ACTIVITY="${TOTAL_ACTIVITY}",PYTHON="${PYTHON}",INITIAL_SUBSETS="${INITIAL_SUBSETS}",INITIAL_EPOCHS="${INITIAL_EPOCHS}",PHOTON_MULTIPLIER="${PHOTON_MULTIPLIER}",WINDOW_LOWER="${WINDOW_LOWER}",WINDOW_UPPER="${WINDOW_UPPER}",PHOTON_ENERGY="${PHOTON_ENERGY}" \
         "${SCRIPTS_DIR}/run_simulation_array.sh")
     SIM_JOB=$(extract_job_id "${SIM_OUT}")
     echo "Simulation job for iteration ${i} submitted with ID ${SIM_JOB}."
