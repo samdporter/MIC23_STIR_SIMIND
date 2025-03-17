@@ -321,6 +321,8 @@ def extract_attributes_from_stir_sinogram(sinogram: "AcquisitionData") -> dict:
     """
     Parse a STIR sinogram info string (from sinogram.get_info()) and extract attributes.
 
+    Note that this probably isn't exhaustive but does work for PET and SPECT sinograms.
+
     Parameters
     ----------
     sinogram : AcquisitionData
@@ -545,7 +547,7 @@ def extract_attributes_from_stir_headerfile(filename: str) -> dict:
             if re.search(r'(radius|radii)\s*:=\s*(.+)', line, re.IGNORECASE):
                 r_match = re.search(r'(radius|radii)\s*:=\s*(.+)', line, re.IGNORECASE)
                 tmp = r_match.group(2).strip()
-                if tmp.startswith("{") and tmp.endswith("}"):
+                if tmp.startswith("{") and tmp.endswith("}") or "," in tmp:
                     # Remove braces and split by comma.
                     tmp = tmp.strip("{}")
                     values = [float(v.strip()) for v in tmp.split(",")]
@@ -553,13 +555,15 @@ def extract_attributes_from_stir_headerfile(filename: str) -> dict:
                     std_value = np.std(values)
                     # If the radii vary, flag non-circular orbit.
                     if std_value > 1e-6:
-                        attributes['orbit'] = "Non-circular"
+                        attributes['orbit'] = "non-circular"
                         attributes['radii'] = values
+                        attributes['height_to_detector_surface'] = mean_value
                         warnings.warn("Non-circular orbit detected. Handle this case manually.", UserWarning)
                     else:
                         attributes['orbit'] = "Circular"
                     attributes['height_to_detector_surface'] = mean_value
                 else:
+                    attributes['orbit'] = "Circular"
                     attributes['height_to_detector_surface'] = float(tmp)
                 continue
 
