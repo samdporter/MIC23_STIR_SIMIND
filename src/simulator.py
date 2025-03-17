@@ -65,6 +65,7 @@ class SimindSimulator:
         self.source = source
         self.mu_map = mu_map
         self.template_sinogram = template_sinogram
+        self.time_per_projection = None
 
         self.output = None
 
@@ -250,6 +251,11 @@ class SimindSimulator:
         self.add_index(30, rotation_switch)
         self.add_index(41, start_angle)
 
+        try:
+            self.time_per_projection = attribute_dict['image_duration']/attribute_dict['number_of_projections']
+        except:
+            print("Warning: Could not find time per projection in template sinogram. Header file will be incorrect.")
+
         if isinstance(template_sinogram, str):
             self.template_sinogram = AcquisitionData(template_sinogram)
         elif isinstance(template_sinogram, AcquisitionData):
@@ -357,16 +363,28 @@ class SimindSimulator:
         output_strings = ["_air_w", "_sca_w", "_tot_w", "_pri_w"]
         
         if not self.files_converted:
+            # get all h00 files in the output directory
+            # that match the output prefix and contain one of the output strings
             h00_files = [
                 f for f in os.listdir(self.output_dir)
                 if f.endswith('.h00') and any(s in f for s in output_strings)
                 and self.output_filepath.name in f
             ]
+            # convert all h00 files to hs files
+            # Mostly naming conventions between SIMIND and STIR
             for f in h00_files:
                 converter.convert(os.path.join(self.output_dir, f))
+                if self.time_per_projection is not None:
+                    converter.edit_parameter(
+                        os.path.join(self.output_dir, f),
+                        "!image duration (sec)[1]",
+                        self.config.get_value(29) * self.time_per_projection
+                    )
                 logging.info(f"Converted {f}")
             self.files_converted = True
         
+        # get all hs files in the output directory
+        # that match the output prefix and contain one of the output strings
         hs_files = [
             f for f in os.listdir(self.output_dir)
             if f.endswith('.hs') and any(s in f for s in output_strings)
@@ -377,9 +395,12 @@ class SimindSimulator:
             match = re.search(r'w(\d+)\.hs$', filename)
             return int(match.group(1)) if match else float('inf')
         
+        # sort the hs files by window number
         hs_files.sort(key=extract_window_number)
+
         output = {}
         for f in hs_files:
+            # order output files by scatter type and window number
             f_split = f.split('_')
             scat_type = f_split[-2]
             window = f_split[-1].split('.')[0]
@@ -387,20 +408,6 @@ class SimindSimulator:
             output_key = f"{scat_type}_{window}"
             output[output_key] = AcquisitionData(file_path)
             
-            if self.template_sinogram is not None:
-                converter.adjust_values(
-                    self.template_sinogram, file_path, threshold=None
-                )
-            else:
-                converter.convert_sinogram_parameter(
-                    output[output_key], "scaling factor (mm/pixel) [1]", self.source.voxel_sizes()[1]
-                )
-                converter.convert_sinogram_parameter(
-                    output[output_key], "scaling factor (mm/pixel) [2]", self.source.voxel_sizes()[2]
-                )
-                converter.convert_sinogram_parameter(
-                    output[output_key], "Radius", 10 * float(self.config.get_value("height_to_detector_surface"))
-                )
         self.output = output
         return output
 
