@@ -69,6 +69,8 @@ class SimindSimulator:
 
         self.output = None
 
+        self.non_circular_orbit = False
+
         if source is not None:
             self.set_source(source)
         if mu_map is not None:
@@ -226,6 +228,23 @@ class SimindSimulator:
             start_angle -= 360
 
         return rotation_switch, start_angle
+    
+    def write_orbit_file(self, orbits, centre_of_rotation=None):
+        if centre_of_rotation is None:
+            # centre of rotation is middle of the image (x/y axis)
+            centre_of_rotation = self.source.dimensions()[1] / 2
+        with open(self.output_filepath.with_suffix('.cor'), 'w') as f:
+            # write line by line with tab radius tab centre of rotation tab 
+            for orbit in orbits:
+                f.write(f'{orbit}\t{centre_of_rotation}\t\n')
+
+    def read_orbit_file(self, orbit_file):
+        orbits = []
+        with open(orbit_file, 'r') as f:
+            for line in f:
+                orbit, _ = line.split()
+                orbits.append(orbit)
+        return orbits
 
     def set_template_sinogram(self, template_sinogram):
         """Set the template sinogram for the simulation.
@@ -239,6 +258,10 @@ class SimindSimulator:
         """
         print("Warning: This will overwrite any other settings with those found in the "
               "template sinogram.")
+        
+        if isinstance(template_sinogram, AcquisitionData):
+            print("Warning: Only circular orbit is supported.")
+
         attribute_dict = extract_attributes_from_stir(template_sinogram)
 
         self.add_index(29, attribute_dict['number_of_projections'])
@@ -250,6 +273,11 @@ class SimindSimulator:
         )
         self.add_index(30, rotation_switch)
         self.add_index(41, start_angle)
+
+        if isinstance(template_sinogram, str):
+            if attribute_dict['orbit'] == 'non-circular':
+                self.non_circular_orbit = True
+                self.write_orbit_file(attribute_dict['radii'])
 
         try:
             self.time_per_projection = attribute_dict['image_duration']/attribute_dict['number_of_projections']
@@ -331,6 +359,12 @@ class SimindSimulator:
             self.output_filepath.name
         ]
 
+        # if non-circular orbit, add the orbit file including .cor extension
+        # but without directory
+        if self.non_circular_orbit:
+            print("Non-circular orbit detected. Adding orbit file to command")
+            command.append(self.output_filepath.name + '.cor')
+
         # Add switches
         switches = ""
         for key, value in self.runtime_switches.switches.items():
@@ -359,7 +393,6 @@ class SimindSimulator:
         if self.output is not None and len(self.output) > 0:
             return self.output
         
-        converter = Converter()
         output_strings = ["_air_w", "_sca_w", "_tot_w", "_pri_w"]
         
         if not self.files_converted:
@@ -373,13 +406,33 @@ class SimindSimulator:
             # convert all h00 files to hs files
             # Mostly naming conventions between SIMIND and STIR
             for f in h00_files:
-                converter.convert(os.path.join(self.output_dir, f))
                 if self.time_per_projection is not None:
-                    converter.edit_parameter(
+                    Converter.edit_parameter(
                         os.path.join(self.output_dir, f),
                         "!image duration (sec)[1]",
                         self.config.get_value(29) * self.time_per_projection
                     )
+                # unfortunatlely, SIMIND .h00 fiels don't always get the radius of rotation right. 
+                # We'll need to do this manually
+                if self.non_circular_orbit:
+                    orbits = self.read_orbit_file(os.path.join(self.output_filepath.with_suffix('.cor')))
+                    orbits_string = "{" + ",".join([f"{o}" for o in orbits]) + "}"
+                    Converter.add_parameter(
+                        os.path.join(self.output_dir, f),
+                        "Radii", 
+                        orbits_string,
+                        59,
+                    )
+                else:
+                    expected_radius = self.config.get_value(12)*10
+                    if Converter.read_line(f)[1] != expected_radius:
+                        logging.info("Radius not set correctly in header file. Setting manually")
+                        Converter.edit_parameter(
+                            os.path.join(self.output_dir, f),
+                            ";# Radius",
+                            expected_radius
+                        )
+                Converter.convert(os.path.join(self.output_dir, f))
                 logging.info(f"Converted {f}")
             self.files_converted = True
         

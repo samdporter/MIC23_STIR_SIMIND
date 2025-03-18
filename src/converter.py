@@ -62,6 +62,15 @@ class Converter:
         if parameter in line:
             return f"{parameter} := {value}"
         return line
+    
+    def read_line(line):
+        """
+        Read a line and return the parameter and value.
+        """
+        if ":=" in line:
+            key, _, value = line.partition(":=")
+            return key.strip(), value.strip()
+        return None, None
 
     @staticmethod
     def convert(filename, return_object=True):
@@ -88,7 +97,7 @@ class Converter:
         """
         Edit a parameter in a header file.
         """
-        if not filename.endswith(".hs"):
+        if not filename.endswith((".hs", ".h00")):
             logging.error("USAGE: script filename.hs")
             sys.exit(1)
 
@@ -100,6 +109,59 @@ class Converter:
         os.rename("tmp.hs", filename)
         logging.info(f"Parameter {parameter} set to {value}")
         return AcquisitionData(filename)
+    
+    @staticmethod
+    def read_parameter(filename, parameter):
+        """
+        Read a parameter from a header file.
+        """
+        if not filename.endswith((".hs", ".h00")):
+            logging.error("USAGE: script filename.hs")
+            sys.exit(1)
+
+        with open(filename, "r") as f:
+            for line in f:
+                key, value = Converter.read_line(line.strip())
+                if key == parameter:
+                    return value
+        return None
+
+    @staticmethod
+    def add_parameter(filename, parameter, value, line_number=0):
+        """
+        Add a parameter at a specific line number in an Interfile header file.
+        """
+        if not filename.endswith((".hs", ".h00")):
+            logging.error("USAGE: script filename.hs or filename.h00")
+            sys.exit(1)
+
+        # first test if parameter already exists
+        with open(filename, "r") as f:
+            for i, line in enumerate(f):
+                key, _ = Converter.read_line(line.strip())
+                if key == parameter:
+                    Converter.edit_parameter(filename, parameter, value)
+
+        #temp_filename with correct extension
+        temp_filename = "tmp" + filename.endswith(".hs") * ".hs" + filename.endswith(".h00") * ".h00"
+        parameter_line = f"{parameter} := {value}\n"
+
+        with open(filename, "r") as f_in, open(temp_filename, "w") as f_out:
+            lines = f_in.readlines()
+
+        # Modify content
+        with open(temp_filename, "w") as f_out:
+            for i, line in enumerate(lines):
+                if i == line_number:
+                    f_out.write(parameter_line)
+                f_out.write(line)
+
+            if len(lines) <= line_number:
+                f_out.write(parameter_line)
+
+        os.remove(filename)
+        os.rename(temp_filename, filename)
+        logging.info(f"Parameter {parameter} set to {value} at line {line_number}")
 
 
     ### The below is meant to deal with the case where SIMIND rounds values, meaning they differ from the original values.

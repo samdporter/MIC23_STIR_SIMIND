@@ -141,6 +141,7 @@ class STIRSPECTAcquisitionDataBuilder:
             '!imaging modality': 'NM',
             'name of data file': 'temp.s',
             '!version of keys': '3.3',
+            'data_offset_in_bytes': '0',
             '!GENERAL DATA': '',
             '!GENERAL IMAGE DATA': '',
             '!type of data': 'Tomographic',
@@ -225,10 +226,12 @@ class STIRSPECTAcquisitionDataBuilder:
 
         return acqdata
 
-    def build_multi_energy(self, output_path_base='temp'):
+    def build_multi_energy(self, output_path_base='temp', multiple_data_files=True):
         """
         If multiple energy windows are available (as extracted in self.energy_windows),
-        build and save separate AcquisitionData files for each energy window.
+        build and save separate AcquisitionData files for each energy window. At the moment,
+        this is the only way to do this. In the future, we may consider adding an option
+        to change the data offset and save data to a single file.
         
         Files are saved with a suffix indicating the energy window number.
         
