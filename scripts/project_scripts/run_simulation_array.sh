@@ -39,7 +39,7 @@ $PYTHON ${BASE_DIR}/simulation_script.py \
     --collimator_routine=1 \
     --photon_direction=3 \
     --crystal_thickness=15.9 \
-    --crystal_half_length_radius=185 \
+    --crystal_half_length_radius=195 \
     --crystal_half_width=265 \
     --half_life=64.6 \
     --axial_slice=56

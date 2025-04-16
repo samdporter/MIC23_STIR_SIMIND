@@ -552,9 +552,9 @@ def extract_attributes_from_stir_headerfile(filename: str) -> dict:
                     tmp = tmp.strip("{}")
                     values = [float(v.strip()) for v in tmp.split(",")]
                     mean_value = np.mean(values)
-                    std_value = np.std(values)
+                    std_of_mean_value = np.std(values)/mean_value
                     # If the radii vary, flag non-circular orbit.
-                    if std_value > 1e-6:
+                    if std_of_mean_value > 1e-6:
                         attributes['orbit'] = "non-circular"
                         attributes['radii'] = values
                         attributes['height_to_detector_surface'] = mean_value

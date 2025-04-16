@@ -2,8 +2,9 @@
 import argparse
 import glob
 import os
+import time
 
-import matplotlib.pyplot as plt
+
 from sirf.STIR import (
     AcquisitionData,
     SPECTUBMatrix,
@@ -86,11 +87,19 @@ def main():
             f"No files found in {args.input_dir} matching pattern {args.scatter_pattern}"
         )
 
+    count = 1
     for i, file in enumerate(scatter_files):
-        scatter = AcquisitionData(file)
-        if i == 0:
-            sum_scatter = scatter.get_uniform_copy(0)
-        sum_scatter += scatter
+        try:
+            scatter = AcquisitionData(file)
+            if i == 0:
+                sum_scatter = scatter.get_uniform_copy(0)
+            sum_scatter += scatter
+            count+=1
+        except:
+            print(f"Unable to open file: {file}")
+            continue
+
+    sum_scatter /= (count)
 
     # Sum total files
     total_files = glob.glob(os.path.join(args.input_dir, args.total_pattern))
@@ -99,11 +108,19 @@ def main():
             f"No files found in {args.input_dir} matching pattern {args.total_pattern}"
         )
 
+    count = 1
     for i, file in enumerate(total_files):
-        total = AcquisitionData(file)
-        if i == 0:
-            sum_total = total.get_uniform_copy(0)
-        sum_total += total
+        try:
+            total = AcquisitionData(file)
+            if i == 0:
+                sum_total = total.get_uniform_copy(0)
+            sum_total += total
+            count+=1
+        except:
+            print(f"Unable to open file: {file}")
+            continue
+
+    sum_total /= (count)
 
     # Compute trues projection
     sum_trues = sum_total - sum_scatter
@@ -118,10 +135,15 @@ def main():
     image = ImageData(image_files[0])
     forward = spect_am.forward(image)
 
+    forward.write(args.output_file_prefix + "_forward.hs")
+
     attenuation_image = image.clone()
+    attenuation_image.fill(spect_data["attenuation"].as_array())
     forward_attenuation = spect_am.forward(attenuation_image)
     thresh = 0.01 * forward_attenuation.max()
-    forward_attenuation.fill(forward_attenuation.as_array() > thresh)
+    forward_attenuation_arr = forward_attenuation.as_array()
+    forward_attenuation_arr = (forward_attenuation_arr >= thresh).astype(forward_attenuation_arr.dtype)
+    forward_attenuation.fill(forward_attenuation_arr)
 
     # Mask trues and forward projections
     sum_trues_masked = sum_trues.clone()
@@ -167,4 +189,9 @@ def main():
 
 
 if __name__ == '__main__':
+
+    start_time = time.time()
+
     main()
+
+    print("Done with scatter sum and scatter scaling in %s seconds" % (time.time() - start_time))

@@ -73,7 +73,7 @@ class Converter:
         return None, None
 
     @staticmethod
-    def convert(filename, return_object=True):
+    def convert(filename, return_object=False):
         """
         Converts a SIMIND header file to a STIR header file.
         """
@@ -93,7 +93,7 @@ class Converter:
         return AcquisitionData(stirfilename) if return_object else None
     
     @staticmethod
-    def edit_parameter(filename, parameter, value):
+    def edit_parameter(filename, parameter, value, return_object=False):
         """
         Edit a parameter in a header file.
         """
@@ -108,7 +108,8 @@ class Converter:
         os.remove(filename)
         os.rename("tmp.hs", filename)
         logging.info(f"Parameter {parameter} set to {value}")
-        return AcquisitionData(filename)
+
+        return AcquisitionData(filename) if return_object else None
     
     @staticmethod
     def read_parameter(filename, parameter):
@@ -127,7 +128,7 @@ class Converter:
         return None
 
     @staticmethod
-    def add_parameter(filename, parameter, value, line_number=0):
+    def add_parameter(filename, parameter, value, line_number=0, return_object=False):
         """
         Add a parameter at a specific line number in an Interfile header file.
         """
@@ -162,6 +163,8 @@ class Converter:
         os.remove(filename)
         os.rename(temp_filename, filename)
         logging.info(f"Parameter {parameter} set to {value} at line {line_number}")
+
+        return AcquisitionData(filename) if return_object else None
 
 
     ### The below is meant to deal with the case where SIMIND rounds values, meaning they differ from the original values.
@@ -204,8 +207,6 @@ class Converter:
             
         if isinstance(reference_file, str) and "tmp_ref.hs" in reference_file:
             os.remove(reference_file)
-        
-        return AcquisitionData(output_adjusted_file)
 
     @staticmethod
     def replace_sinogram_values(reference_sinogram, sinogram_to_adjust):

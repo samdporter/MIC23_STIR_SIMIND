@@ -12,7 +12,7 @@ if [ -z "${ITERATION:-}" ]; then
 else
     INDEX="${ITERATION}"
     # For iteration i, use the mean scatter file computed in the summing job.
-    ADDITIVE="--additive_path=${OUTPUT_DIR}/mean_scatter_iter${ITERATION}.hs"
+    ADDITIVE="--additive_path=${OUTPUT_DIR}/mean_iter${ITERATION}_scatter.hs"
 fi
 
 $PYTHON ${SCRIPTS_DIR}/osem.py \

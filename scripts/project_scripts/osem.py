@@ -2,6 +2,7 @@ from sirf.STIR import *
 import numpy as np
 import os
 import matplotlib.pyplot as pl
+import time
 
 import argparse
 
@@ -72,6 +73,8 @@ def main(data_path):
     return recon_image
 
 if __name__ == "__main__":
+
+    start_time = time.time()
     
     msg = MessageRedirector()
     
@@ -86,3 +89,4 @@ if __name__ == "__main__":
     spect.write(os.path.join(args.output_path, f"recon_{suffix}_{args.index}.hv"))
 
     print(f"Reconstruction done, saved to {args.output_path}")
+    print(f"Elapsed time: {time.time() - start_time} s")

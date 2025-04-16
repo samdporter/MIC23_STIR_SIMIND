@@ -2,17 +2,17 @@
 
 # Define common variables (adjust paths and parameters as needed)
 PYTHON=python3
-DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/anthropomorphic_phantom_data/SPECT/phantom_208"
+DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/nema_phantom_data/SPECT"
 BASE_DIR="/home/sporter/synergistic_Y90/MIC23_STIR_SIMIND"
 SCRIPTS_DIR="${BASE_DIR}/scripts/project_scripts"
-SUFFIX="anthro_phantom_208"
+SUFFIX="nema_phantom"
 OUTPUT_DIR="${BASE_DIR}/output/${SUFFIX}"
 INITIAL_SUBSETS=12
 INITIAL_EPOCHS=10
-TOTAL_ACTIVITY=264.7 # 187 # 182.8
-PHOTON_MULTIPLIER=10
+TOTAL_ACTIVITY=187 # 187 # 182.8
+PHOTON_MULTIPLIER=100
 NUM_ITERATIONS=5
-NUM_ARRAY_JOBS=50  # Allow overriding with an environment variable or command-line argument
+NUM_ARRAY_JOBS=10  # Allow overriding with an environment variable or command-line argument
 WINDOW_LOWER=75
 WINDOW_UPPER=225
 PHOTON_ENERGY=150
@@ -56,7 +56,7 @@ for i in $(seq 1 ${NUM_ITERATIONS}); do
     
     SIM_OUT=$(qsub \
         -N sim_iter_${i}_${SUFFIX} \
-        -cwd -l h_rt=96:00:00,tmem=16G,h_vmem=16G,tscratch=10G \
+        -cwd -l h_rt=168:00:00,tmem=16G,h_vmem=16G,tscratch=10G \
         -t 1-${NUM_ARRAY_JOBS} \
         -j y -R y \
         -hold_jid "${PREV_JOB}" \
@@ -67,7 +67,7 @@ for i in $(seq 1 ${NUM_ITERATIONS}); do
     
     SUM_OUT=$(qsub \
         -N sum_iter_${i}_${SUFFIX} \
-        -cwd -l h_rt=01:00:00,tmem=32G,h_vmem=32G,tscratch=10G \
+        -cwd -l h_rt=04:00:00,tmem=32G,h_vmem=32G,tscratch=10G \
         -j y -R y \
         -hold_jid "${SIM_JOB}" \
         -v ITERATION="${i}",OUTPUT_DIR="${OUTPUT_DIR}",PYTHON="${PYTHON}",DATA_DIR="${DATA_DIR}" \

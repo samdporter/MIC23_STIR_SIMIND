@@ -7,6 +7,7 @@ generate simulated sinograms and compare with measured data.
 
 import os
 import argparse
+import time
 
 import numpy as np
 import pandas as pd
@@ -201,7 +202,7 @@ def main(args):
         output_prefix=args.output_prefix,
         source=image,
         mu_map=mu_map,
-        template_sinogram=measured_data
+        template_sinogram=args.measured_data_path,
     )
 
     simulator.add_comment("Demonstration of SIMIND simulation")
@@ -331,7 +332,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     try:
+
+        start_time = time.time()
+
         main(args)
+
+        print(
+            "Simulation completed successfully!" 
+            "Time taken: {:.2f} seconds".format(
+            time.time() - start_time)
+        )
     except Exception as e:
         print(e)
         raise e
