@@ -89,7 +89,7 @@ def main(args):
         output_prefix=args.output_prefix,
         source=image, 
         mu_map=mu_map, 
-        template_sinogram=measured_data
+        template_sinogram=args.measured_data_path,
     )
 
     simulator.add_comment("Demonstration of SIMIND simulation")
