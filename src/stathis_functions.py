@@ -196,7 +196,8 @@ class STIRSPECTAcquisitionDataBuilder:
         header_path = output_path + '.hs'
         raw_file_path = output_path + '.s'
 
-        self.header['name of data file'] = raw_file_path
+        # Update the header with just the file name, not the full path
+        self.header['name of data file'] = os.path.basename(raw_file_path)
         
         self.header['!END OF INTERFILE'] = ''
 
@@ -205,7 +206,7 @@ class STIRSPECTAcquisitionDataBuilder:
                 f.write(f"{key} := {value}\n")
 
         # Write the raw data to a temporary file.
-        # This, unfortunately is in the wrong order somehow.
+        # This, unfortunately, is in the wrong order somehow.
         self.pixel_array.tofile(output_path + '.s')
 
         # Create the AcquisitionData object from the header file.
@@ -214,7 +215,7 @@ class STIRSPECTAcquisitionDataBuilder:
         acqdata = acqdata.clone().fill(self.pixel_array)
         acqdata.write(header_path)
 
-        # now we need to rewrite the header file
+        # Now we need to rewrite the header file
         with open(header_path, 'w') as f:
             for key, value in self.header.items():
                 f.write(f"{key} := {value}\n")
@@ -340,6 +341,13 @@ class STIRSPECTAcquisitionDataBuilder:
                         self.header['start angle'] = str(rot_item.StartAngle)
                     elif (0x0054, 0x0200) in rot_item:
                         self.header['start angle'] = str(rot_item[(0x0054, 0x0200)].value)
+                    if (0x0018, 0x1242) in rot_item:
+                        time_per_projection = str(rot_item[(0x0018, 0x1242)].value/1000)
+                    if num_frames is not None:
+                        self.header['number of time frames'] = str(1)
+                        self.header['!image duration (sec)[1]'] = str(int(np.round(float(time_per_projection) * float(num_frames), 0)))
+                    else:
+                        self.header['!time per projection (sec)[1]'] = time_per_projection
                     if 'RotationDirection' in rot_item:
                         rd = str(rot_item.RotationDirection)
                         self.header['!direction of rotation'] = 'CCW' if rd == 'CC' else ('CW' if rd == 'C' else rd)
@@ -405,13 +413,13 @@ class STIRSPECTAcquisitionDataBuilder:
         except Exception as e:
             warnings.warn("Error processing radial position data from DICOM: " + str(e))
 
-        # (Remaining updates: study date, acquisition number, manufacturer, etc.)
+        # (Remaining updates: acquisition date & time, acquisition number, manufacturer, etc.)
         try:
-            self.header[';#study date'] = ds.StudyDate
+            self.header[';#acquisition date'] = ds.AcquisitionDate
         except AttributeError:
             warnings.warn("StudyDate not found in DICOM.")
         try:
-            self.header[';#study time'] = ds.StudyTime
+            self.header[';#acquisition time'] = ds.AcquisitionTime
         except AttributeError:
             warnings.warn("StudyTime not found in DICOM.")
         try:
