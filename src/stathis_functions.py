@@ -212,6 +212,8 @@ class STIRSPECTAcquisitionDataBuilder:
         # Create the AcquisitionData object from the header file.
         # We do this and fill because of the ordering described above.
         acqdata = AcquisitionData(header_path)
+        # need to flip in last axis for some reason #TODO
+        self.pixel_array = np.flip(self.pixel_array, axis=-1)
         acqdata = acqdata.clone().fill(self.pixel_array)
         acqdata.write(header_path)
 
