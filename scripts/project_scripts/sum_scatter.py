@@ -138,12 +138,18 @@ def main():
     forward.write(args.output_file_prefix + "_forward.hs")
 
     attenuation_image = image.clone()
-    attenuation_image.fill(spect_data["attenuation"].as_array())
+    attenuation_array =  spect_data["attenuation"].as_array()
+    # mask attenuation array
+    attenuation_array = (attenuation_array >= 0.05)
+    attenuation_image.fill(attenuation_array)
     forward_attenuation = spect_am.forward(attenuation_image)
     thresh = 0.01 * forward_attenuation.max()
     forward_attenuation_arr = forward_attenuation.as_array()
     forward_attenuation_arr = (forward_attenuation_arr >= thresh).astype(forward_attenuation_arr.dtype)
     forward_attenuation.fill(forward_attenuation_arr)
+
+    # write forward attenuation image
+    forward_attenuation.write(args.output_file_prefix + "_mask.hs")
 
     # Mask trues and forward projections
     sum_trues_masked = sum_trues.clone()
