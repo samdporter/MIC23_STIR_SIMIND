@@ -166,6 +166,8 @@ class STIRSPECTAcquisitionDataBuilder:
         if header_overrides is not None:
             self.header.update(header_overrides)
 
+        self.pixel_array = None
+
     def update_header(self, updates):
         """
         Update the header dictionary with new key-value pairs.
