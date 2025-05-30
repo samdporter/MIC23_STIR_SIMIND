@@ -1,203 +1,293 @@
 #!/usr/bin/env python3
+"""
+Compute mean scatter image from SIMIND scatter outputs,
+normalize by predicted true counts from the forward model.
+"""
 import argparse
 import glob
+import logging
 import os
+import sys
 import time
+from pathlib import Path
 
+import nibabel as nib
+import numpy as np
+from skimage.morphology import ball, erosion
 
 from sirf.STIR import (
     AcquisitionData,
     SPECTUBMatrix,
     AcquisitionModelUsingMatrix,
     ImageData,
+    SeparableGaussianImageFilter,
+)
+from sirf.Reg import ImageData as RegImageData
+from totalsegmentator.python_api import totalsegmentator
+
+# Constants (can be parameterized via CLI if desired)
+EROSION_RADIUS = 4       # voxels for spherical erosion
+THRESHOLD_FACTOR = 0.01  # fraction of max for forward mask
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+def average_acquisition(files):
+    """
+    Load and average a list of AcquisitionData files.
+    Returns averaged AcquisitionData or raises on failure.
+    """
+    count = 0
+    sum_data = None
+    for file in files:
+        try:
+            acq = AcquisitionData(str(file))
+            if sum_data is None:
+                sum_data = acq.get_uniform_copy(0)
+            sum_data += acq
+            count += 1
+        except Exception as e:
+            logging.warning(f"Unable to open {file}: {e}")
+    if count == 0:
+        raise ValueError("No valid acquisition files to average.")
+    sum_data /= count
+    return sum_data
 
-def get_spect_data(path):
-    spect_data = {}
-    spect_data["acquisition_data"] = AcquisitionData(
-        os.path.join(path, "peak.hs")
-    )
-    spect_data["attenuation"] = ImageData(
-        os.path.join(path, "umap_zoomed.hv")
-    )
-    # attn_arr = spect_data["attenuation"].as_array()
-    # attn_arr = np.flip(attn_arr, axis=-1)
-    # spect_data["attenuation"].fill(attn_arr)
+
+def align_segmentation(seg_nii):
+    """
+    Align NIfTI segmentation to SIRF ImageData orientation.
+    Rotates axes and flips as required.
+    """
+    data = seg_nii.get_fdata() == 1
+    # Rotate and flip to match SIRF ordering
+    data = np.rot90(data, axes=(0, 2))
+    data = np.flip(data, axis=0)
+    return data
+
+
+def mask_and_forward(model, image, attenuation, erosion_radius, threshold_factor, segment=True):
+    """
+    Segment body, erode mask, apply to attenuation and forward-project.
+    Returns forward projection and attenuation-masked forward mask.
+    """
+    if segment:
+        # Segment body from attenuation
+        tmp_nii = RegImageData(attenuation)
+        tmp_nii.write("__tmp_attn.nii")
+        seg_nii = nib.load("__tmp_attn.nii")
+        seg = totalsegmentator(seg_nii, body_seg=True, task='body')
+        mask = align_segmentation(seg)
+
+    else:
+        mask = attenuation.as_array() > threshold_factor * attenuation.max()
+
+    # Erode mask (spherical)
+    selem = ball(erosion_radius)
+    eroded = erosion(mask, selem)
+
+    # Apply eroded mask to attenuation
+    attn_arr = attenuation.as_array()
+    attn_arr[~eroded] = 0.0
+    attenuation.fill(attn_arr)
+
+    # Forward project attenuation
+    fwd_attn = model.forward(attenuation)
+    thresh = threshold_factor * fwd_attn.max()
+    fwd_arr = fwd_attn.as_array() >= thresh
+    fwd_attn.fill(fwd_arr)
+
+    return model.forward(image), fwd_attn
+
+
+def get_spect_data(data_dir):
+    """
+    Load SPECT data from directory:
+    - peak.hs => acquisition_data
+    - umap_zoomed.hv => attenuation image
+    - initial or template image
+    """
+    data_dir = Path(data_dir)
+    if not data_dir.is_dir():
+        logging.error(f"Data directory not found: {data_dir}")
+        sys.exit(1)
+
+    acq_path = data_dir / "peak.hs"
+    attn_path = data_dir / "umap_zoomed.hv"
+    if not acq_path.exists() or not attn_path.exists():
+        logging.error("Expected files missing in data_dir.")
+        sys.exit(1)
+
+    spect_data = {
+        "acquisition_data": AcquisitionData(str(acq_path)),
+        "attenuation": ImageData(str(attn_path)),
+    }
+    # initial image fallback
+    init_path = data_dir / "initial_image.hv"
+    tmpl_path = data_dir / "template_image.hv"
     try:
-        spect_data["initial_image"] = ImageData(
-            os.path.join(path, "initial_image.hv")
-        ).maximum(0)
+        img = ImageData(str(init_path)).maximum(0)
     except Exception:
-        spect_data["initial_image"] = ImageData(
-            os.path.join(path, "template_image.hv")
-        )
-        spect_data["initial_image"].fill(1)
-
+        img = ImageData(str(tmpl_path))
+        img.fill(1)
+    spect_data["initial_image"] = img
     return spect_data
 
 
-def get_spect_am(spect_data, keep_all_views_in_cache=False):
-    spect_am_mat = SPECTUBMatrix()
-    spect_am_mat.set_attenuation_image(spect_data["attenuation"])
-    spect_am_mat.set_keep_all_views_in_cache(keep_all_views_in_cache)
-    spect_am_mat.set_resolution_model(0.9323, 0.03, False)
-    spect_am = AcquisitionModelUsingMatrix(spect_am_mat)
+def get_spect_am(spect_data, args, keep_cache=False):
+    """
+    Build AcquisitionModelUsingMatrix with attenuation and resolution modeling.
+    """
+    mat = SPECTUBMatrix()
+    mat.set_attenuation_image(spect_data["attenuation"])
+    mat.set_keep_all_views_in_cache(keep_cache)
+    mat.set_resolution_model(
+        args.spect_res[0], args.spect_res[1], args.spect_res[2]
+    )
+    gauss = SeparableGaussianImageFilter()
+    gauss.set_fwhms(args.spect_gauss_fwhm)
+    spect_am = AcquisitionModelUsingMatrix(mat)
+    spect_am.set_image_data_processor(gauss)
     return spect_am
+
+
+def parse_spect_res(x):
+    vals = x.split(',')
+    if len(vals) != 3:
+        raise argparse.ArgumentTypeError("spect_res must be 3 values: float,float,bool")
+    return float(vals[0]), float(vals[1]), vals[2].lower() == 'true'
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compute mean scatter image from SIMIND scatter outputs."
+        description="Compute and normalize mean scatter from SIMIND outputs."
+    )
+    parser.add_argument("--input_dir",          required=True,
+                        help="Dir with scatter/total files.")
+    parser.add_argument("--data_dir",           required=True,
+                        help="Dir with acquisition & attenuation files.")
+    parser.add_argument("--output_file_prefix", required=True,
+                        help="Prefix path (no extension) for all outputs.")
+    parser.add_argument("--scatter_pattern",
+                       default="*_sca_w1.hs",
+                        help="glob for scatter files (e.g. '*_iter${i}_*_sca_w1.hs')")
+    parser.add_argument("--total_pattern",
+                       default="*_tot_w1.hs",
+                        help="glob for total   files (e.g. '*_iter${i}_*_tot_w1.hs')")
+    parser.add_argument("--image_pattern",
+                        default="recon_osem.hv",
+                        help="glob for image   files (e.g. 'recon_osem_i*_s*_smoothed_${i}.hv')")
+    parser.add_argument("--delete_files", action='store_true')
+    parser.add_argument("--normalise", action='store_true',
+                        help="Normalize scatter by forward projection of image.")
+    parser.add_argument("--no_segment_body", action='store_false',
+                        dest='segment_body',
+                        help="Disable body segmentation from attenuation.")
+    parser.add_argument(
+        "--spect_gauss_fwhm",
+        type=float,
+        nargs=3,
+        default=(13.4, 13.4, 13.4),
+        help="Gaussian FWHM for smoothing."
     )
     parser.add_argument(
-        '--input_dir', type=str, required=True,
-        help="Directory containing scatter files"
-    )
-    parser.add_argument(
-        '--data_dir', type=str, default=None,
-        help="Directory containing data files"
-    )
-    parser.add_argument(
-        '--scatter_pattern', type=str, default="*_sca_w1.hs",
-        help="Filename pattern for scatter files (default: '*_sca_w1.hs')"
-    )
-    parser.add_argument(
-        '--total_pattern', type=str, default="*_tot_w1.hs",
-        help="Filename pattern for total files (default: '*_tot_w1.hs')"
-    )
-    parser.add_argument(
-        '--image_pattern', type=str, default="recon_osem.hv",
-        help="Filename pattern for image files (default: 'recon_osem.hv')"
-    )
-    parser.add_argument(
-        '--output_file_prefix', type=str, required=True,
-        help="Output file for mean scatter image"
-    )
-    parser.add_argument(
-        '--delete_files', action='store_true',
-        help="Delete scatter files after computing mean scatter image"
+    "--spect_res",
+    type=parse_spect_res,
+    default=(1.22, 0.03, False),
+    help="Tuple of (float, float, bool) for SPECT resolution and use flag (e.g. 0.0923,0.03,True)"
     )
     args = parser.parse_args()
 
-    # Sum scatter files
-    scatter_files = glob.glob(os.path.join(args.input_dir, args.scatter_pattern))
-    if not scatter_files:
-        raise ValueError(
-            f"No files found in {args.input_dir} matching pattern {args.scatter_pattern}"
-        )
+    input_dir = Path(args.input_dir)
+    # gather files
+    scatter_files = list(input_dir.glob(args.scatter_pattern))
+    total_files   = list(input_dir.glob(args.total_pattern))
+    if not scatter_files or not total_files:
+        logging.error("No scatter or total files found.")
+        sys.exit(1)
 
-    count = 1
-    for i, file in enumerate(scatter_files):
-        try:
-            scatter = AcquisitionData(file)
-            if i == 0:
-                sum_scatter = scatter.get_uniform_copy(0)
-            sum_scatter += scatter
-            count+=1
-        except:
-            print(f"Unable to open file: {file}")
-            continue
+    # Average projections
+    sum_scatter = average_acquisition(scatter_files)
+    sum_total   = average_acquisition(total_files)
+    sum_trues   = sum_total - sum_scatter
 
-    sum_scatter /= (count)
+    # write unnormalized outputs
+    sum_scatter.write(f"{args.output_file_prefix}_scatter_unscaled.hs")
+    logging.info("Wrote unnormalized mean scatter.")
+    sum_total.write(f"{args.output_file_prefix}_total_unscaled.hs")
+    logging.info("Wrote unnormalized mean total.")
+    sum_trues.write(f"{args.output_file_prefix}_trues_unscaled.hs")
+    logging.info("Wrote unnormalized mean trues.")
 
-    # Sum total files
-    total_files = glob.glob(os.path.join(args.input_dir, args.total_pattern))
-    if not total_files:
-        raise ValueError(
-            f"No files found in {args.input_dir} matching pattern {args.total_pattern}"
-        )
-
-    count = 1
-    for i, file in enumerate(total_files):
-        try:
-            total = AcquisitionData(file)
-            if i == 0:
-                sum_total = total.get_uniform_copy(0)
-            sum_total += total
-            count+=1
-        except:
-            print(f"Unable to open file: {file}")
-            continue
-
-    sum_total /= (count)
-
-    # Compute trues projection
-    sum_trues = sum_total - sum_scatter
-
+    # Setup SPECT model
     spect_data = get_spect_data(args.data_dir)
-    spect_am = get_spect_am(spect_data, keep_all_views_in_cache=False)
+    spect_am   = get_spect_am(spect_data, args, keep_cache=True)
     spect_am.set_up(spect_data["acquisition_data"], spect_data["initial_image"])
 
-    image_files = glob.glob(os.path.join(args.input_dir, args.image_pattern))
-    if not image_files:
-        raise ValueError(f"No image files found matching {args.image_pattern} in {args.input_dir}")
-    image = ImageData(image_files[0])
-    forward = spect_am.forward(image)
+    # Normalize by forward true counts
+    if args.normalise:
+        image_files = list(input_dir.glob(args.image_pattern))
+        if not image_files:
+            logging.error("Recon image not found for forward projection.")
+            sys.exit(1)
+        image = ImageData(str(image_files[0]))
 
-    forward.write(args.output_file_prefix + "_forward.hs")
+        forward, fwd_mask = mask_and_forward(
+                spect_am,
+                image,
+                spect_data["attenuation"],
+                EROSION_RADIUS,
+                THRESHOLD_FACTOR,
+                segment=args.segment_body
+            )
 
-    attenuation_image = image.clone()
-    attenuation_array =  spect_data["attenuation"].as_array()
-    # mask attenuation array
-    attenuation_array = (attenuation_array >= 0.05)
-    attenuation_image.fill(attenuation_array)
-    forward_attenuation = spect_am.forward(attenuation_image)
-    thresh = 0.01 * forward_attenuation.max()
-    forward_attenuation_arr = forward_attenuation.as_array()
-    forward_attenuation_arr = (forward_attenuation_arr >= thresh).astype(forward_attenuation_arr.dtype)
-    forward_attenuation.fill(forward_attenuation_arr)
+        # compute counts for scaling
+        true_masked  = sum_trues.clone()
+        true_masked *= fwd_mask
+        trues_count  = true_masked.sum()
 
-    # write forward attenuation image
-    forward_attenuation.write(args.output_file_prefix + "_mask.hs")
+        fwd_masked   = forward.clone()
+        fwd_masked   *= fwd_mask
+        fwd_count    = fwd_masked.sum()
 
-    # Mask trues and forward projections
-    sum_trues_masked = sum_trues.clone()
-    sum_trues_masked *= forward_attenuation
-    sum_trues_counts = sum_trues_masked.sum()
+        scale = fwd_count / trues_count
+        logging.info(f"Scatter scaling factor: {scale:.4f}")
+        with open(f"{args.output_file_prefix}_scatter_scaling.txt", 'w') as f:
+            f.write(str(scale))
 
-    forward_masked = forward.clone()
-    forward_masked *= forward_attenuation
-    forward_counts = forward_masked.sum()
+        sum_scatter *= scale
+        sum_total   *= scale
+        sum_trues   *= scale
 
-    scatter_scaling = forward_counts / sum_trues_counts
-    print(f"Scatter scaling factor: {scatter_scaling}")
-    # save scatter scaling factor
-    with open(args.output_file_prefix + "_scatter_scaling.txt", "w") as f:
-        f.write(f"{scatter_scaling}")
+        forward.write(f"{args.output_file_prefix}_forward.hs")
+        logging.info("Wrote forward projection.")
+        fwd_mask.write(f"{args.output_file_prefix}_fwd_mask.hs")
+        logging.info("Wrote forward mask.")
+        true_masked.write(f"{args.output_file_prefix}_trues_masked.hs")
+        logging.info("Wrote masked true counts.")
+        fwd_masked.write(f"{args.output_file_prefix}_fwd_masked.hs")
+        logging.info("Wrote masked forward counts.")
 
-    mean_scatter = sum_scatter * scatter_scaling
-    mean_scatter.write(args.output_file_prefix + "_scatter.hs")
-    print(
-        f"Mean scatter image computed from {len(scatter_files)} files and "
-        f"written to {args.output_file_prefix}_scatter.hs"
-    )
-
-    mean_total = sum_total * scatter_scaling
-    mean_total.write(args.output_file_prefix + "_total.hs")
-    print(
-        f"Mean total image computed from {len(total_files)} files and "
-        f"written to {args.output_file_prefix}_total.hs"
-    )
-
-    mean_trues = sum_trues * scatter_scaling
-    mean_trues.write(args.output_file_prefix + "_trues.hs")
-    print(
-        f"Mean trues image computed from {len(total_files)} files and "
-        f"written to {args.output_file_prefix}_trues.hs"
-    )
+    # Write outputs
+    sum_scatter.write(f"{args.output_file_prefix}_scatter.hs")
+    logging.info("Wrote mean scatter.")
+    sum_total.write(f"{args.output_file_prefix}_total.hs")
+    logging.info("Wrote mean total.")
+    sum_trues.write(f"{args.output_file_prefix}_trues.hs")
+    logging.info("Wrote mean trues.")
 
     if args.delete_files:
-        # Delete binary data files
-        for pattern in ["*_sca_w1.a00", "*_air_w1.a00", "*_tot_w1.a00"]:
-            for file in glob.glob(os.path.join(args.input_dir, pattern)):
-                os.remove(file)
-
+        for pattern in ("*_sca_w1.a00", "*_air_w1.a00", "*_tot_w1.a00"):
+            for f in input_dir.glob(pattern):
+                try:
+                    f.unlink()
+                except Exception as e:
+                    logging.warning(f"Could not delete {f}: {e}")
 
 if __name__ == '__main__':
-
-    start_time = time.time()
-
+    start = time.time()
     main()
-
-    print("Done with scatter sum and scatter scaling in %s seconds" % (time.time() - start_time))
+    logging.info(f"Done in {time.time()-start:.1f} seconds.")

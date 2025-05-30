@@ -18,4 +18,3 @@ $PYTHON sum_scatter.py \
     --image_pattern="recon_osem_i*_s*_smoothed_${ITERATION_MINUS_ONE}.hv" \
     --output_file_prefix=${OUTPUT_DIR}/mean_iter${ITERATION} \
     --data_dir=${DATA_DIR} \
-    --delete_files

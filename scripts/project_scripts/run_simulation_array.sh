@@ -26,7 +26,7 @@ $PYTHON ${BASE_DIR}/simulation_script.py \
     --window_upper=${WINDOW_UPPER} \
     --source_type="y90_frey" \
     --collimator="ma-megp" \
-    --kev_per_channel=10 \
+    --kev_per_channel=20 \
     --max_energy=960 \
     --mu_map_path=${DATA_DIR}/umap_zoomed.hv \
     --image_path=${INPUT_IMAGE} \
@@ -43,3 +43,6 @@ $PYTHON ${BASE_DIR}/simulation_script.py \
     --crystal_half_width=265 \
     --half_life=64.6 \
     --axial_slice=56
+
+# remember to set collimator_routine=1 and photon_direction=3 for septal penetration
+# time per projection = 20 for patients

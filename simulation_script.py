@@ -219,7 +219,7 @@ def main(args):
     simulator.add_index("step_size_photon_path_simulation",
                         min(*image.voxel_sizes()) / 10)
     simulator.add_index("energy_resolution", 9.5)
-    simulator.add_index("intrinsic_resolution", 0.31)
+    simulator.add_index("intrinsic_resolution", 0.28)
     simulator.add_index("cutoff_energy_terminate_photon_history", args.window_lower * 0.5)
 
     simulator.add_runtime_switch("CC", args.collimator)
@@ -295,7 +295,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_path', type=str,
                         default='data/Lu177/osem_image.hv',
                         help='Path to image')
-    parser.add_argument('--simind_parent_dir', type=str, default='',
+    parser.add_argument('--simind_parent_dir', type=str, default='.',
                         help='Parent directory for SIMIND simulation')
     parser.add_argument('--measured_data_path', type=str,
                         default='data/Lu177/SPECTCT_NEMA_128_EM001_DS_en_1_Lu177_EM.hdr',
@@ -311,7 +311,7 @@ if __name__ == '__main__':
                         help='Scoring routine')
     parser.add_argument('--collimator_routine', type=int, default=0,
                         help='Collimator routine')
-    parser.add_argument('--photon_direction', type=int, default=3,
+    parser.add_argument('--photon_direction', type=int, default=2,
                         help='Photon direction')
     parser.add_argument('--crystal_thickness', type=float, default=7.25,
                         help='Crystal thickness in mm')
