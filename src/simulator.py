@@ -236,14 +236,14 @@ class SimindSimulator:
         with open(self.output_filepath.with_suffix('.cor'), 'w') as f:
             # write line by line with tab radius tab centre of rotation tab 
             for orbit in orbits:
-                f.write(f'{orbit}\t{centre_of_rotation}\t\n')
+                f.write(f'{orbit/10}\t{centre_of_rotation}\t\n')
 
     def read_orbit_file(self, orbit_file):
         orbits = []
         with open(orbit_file, 'r') as f:
             for line in f:
                 orbit, _ = line.split()
-                orbits.append(orbit)
+                orbits.append(orbit*10)
         return orbits
 
     def set_template_sinogram(self, template_sinogram):

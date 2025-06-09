@@ -2,17 +2,17 @@
 
 # Define common variables (adjust paths and parameters as needed)
 PYTHON=python3
-DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/nema_phantom_data/SPECT"
+DATA_DIR="/home/sporter/synergistic_Y90/prepared_data/phantom_data/anthropomorphic_phantom_data/SPECT/phantom_140"
 BASE_DIR="/home/sporter/synergistic_Y90/MIC23_STIR_SIMIND"
 SCRIPTS_DIR="${BASE_DIR}/scripts/project_scripts"
-SUFFIX="nema_phantom"
+SUFFIX="phantom_140"
 OUTPUT_DIR="${BASE_DIR}/output/${SUFFIX}"
 INITIAL_SUBSETS=12
-INITIAL_EPOCHS=10
-TOTAL_ACTIVITY=187 # 187 # 182.8
-PHOTON_MULTIPLIER=100
+INITIAL_EPOCHS=5
+TOTAL_ACTIVITY=160.8 #1219.9262340849405 #1069 # 187 # 182.8
+PHOTON_MULTIPLIER=10
 NUM_ITERATIONS=5
-NUM_ARRAY_JOBS=10  # Allow overriding with an environment variable or command-line argument
+NUM_ARRAY_JOBS=10 
 WINDOW_LOWER=75
 WINDOW_UPPER=225
 PHOTON_ENERGY=150
@@ -25,6 +25,7 @@ rm -rf ${OUTPUT_DIR}/*
 # Ensure the script is run from SCRIPTS_DIR
 if [[ "$PWD" != "$SCRIPTS_DIR" ]]; then
     echo "Error: Please run this script from ${SCRIPTS_DIR}"
+    echo "Current directory is $PWD"
     exit 1
 fi
 
