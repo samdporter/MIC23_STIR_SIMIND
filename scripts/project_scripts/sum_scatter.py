@@ -270,6 +270,19 @@ def main():
         logging.info("Wrote masked true counts.")
         fwd_masked.write(f"{args.output_file_prefix}_fwd_masked.hs")
         logging.info("Wrote masked forward counts.")
+        
+    else:
+        # normalise by total counts in measured / total counts in trues
+        total_count = sum_total.sum()
+        measured_count = spect_data["acquisition_data"].sum()
+        if total_count == 0:
+            logging.error("Total counts in mean total is zero, cannot normalize.")
+            sys.exit(1)
+        scale = measured_count / total_count
+        logging.info(f"Scatter scaling factor: {scale:.4f}")
+        sum_scatter *= scale
+        sum_total   *= scale
+        sum_trues   *= scale        
 
     # Write outputs
     sum_scatter.write(f"{args.output_file_prefix}_scatter.hs")

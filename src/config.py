@@ -5,14 +5,16 @@
 ### Author: Sam Porter
 
 import re
+import yaml
 from pathlib import Path
 
 class SimulationConfig:
     """
-    SimulationConfig Class
+    SimulationConfig Class with YAML import/export capabilities
 
     This class is designed to parse, manipulate, and save simulation configuration files. It provides easy access
     to configuration parameters, including index-based data, simulation flags, text variables, and associated data files.
+    Now includes YAML export/import for better visualization and editing.
 
     Attributes:
         filepath (str): Path to the simulation configuration file.
@@ -73,6 +75,19 @@ class SimulationConfig:
             7: "phantom_soft_tissue", 8: "phantom_bone", 9: "cover_material", 10: "crystal_material",
             11: "image_file_phantom", 12: "image_file_source", 13: "backscatter_material", 14: "energy_resolution_file"
         }
+        
+        # Create organized parameter groups for better YAML structure
+        self.parameter_groups = {
+            "source": [1, 2, 3, 4, 15, 16, 17, 18, 19, 24, 25, 26, 79, 82],
+            "phantom": [5, 6, 7, 14, 31, 32, 33, 34, 35, 36, 37, 39, 40, 45, 78, 81],
+            "detector_crystal": [8, 9, 10, 12, 13, 22, 23, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101],
+            "collimator": [46, 47, 48, 49, 50, 51, 52, 53, 54, 56, 59],
+            "energy_analysis": [20, 21, 27, 80, 83],
+            "spect_imaging": [28, 29, 30, 41, 42, 43, 44, 76, 77],
+            "simulation_control": [38, 55, 84, 85],
+            "unused_parameters": [57, 58, 60]
+        }
+        
         self.data = None
         self.flags = None
         self.text_variables = {}
@@ -107,6 +122,291 @@ class SimulationConfig:
             data_files_count = int(lines[data_files_start].split()[0])
             data_files_lines = lines[data_files_start + 1:data_files_start + 1 + data_files_count]
             self.data_files = {i+7: data_files_lines[i].strip() for i in range(data_files_count)}
+
+    def to_yaml_dict(self):
+        """
+        Convert the configuration to a structured dictionary suitable for YAML export.
+        
+        Returns:
+            dict: Organized configuration data
+        """
+        yaml_dict = {
+            "metadata": {
+                "comment": self.comment,
+                "source_file": str(self.filepath)
+            },
+            "parameters": {},
+            "simulation_flags": {},
+            "text_variables": dict(self.text_variables),
+            "data_files": {}
+        }
+        
+        # Organize parameters by groups
+        for group_name, indices in self.parameter_groups.items():
+            yaml_dict["parameters"][group_name] = {}
+            for idx in indices:
+                if idx in self.index_dict and idx <= len(self.data):
+                    param_name = self.index_dict[idx]
+                    value = self.data[idx - 1]
+                    yaml_dict["parameters"][group_name][param_name] = {
+                        "index": idx,
+                        "value": float(value),
+                        "description": self._get_parameter_description(param_name)
+                    }
+        
+        # Add simulation flags
+        for idx, flag_name in self.flag_dict.items():
+            if idx <= len(self.flags):
+                yaml_dict["simulation_flags"][flag_name] = {
+                    "index": idx,
+                    "enabled": self.flags[idx - 1] == 'T'
+                }
+        
+        # Add data files with descriptions
+        for idx, file_desc in self.data_file_dict.items():
+            if idx in self.data_files:
+                yaml_dict["data_files"][file_desc] = {
+                    "index": idx,
+                    "filepath": self.data_files[idx]
+                }
+        
+        return yaml_dict
+
+    def _get_parameter_description(self, param_name):
+        """
+        Get a human-readable description for parameters.
+        
+        WARNING: Parameter descriptions are based on research of SIMIND documentation
+        and may vary between SIMIND versions. SIMIND 7.0+ introduced significant 
+        parameter reorganization. Always verify against your specific SIMIND version's
+        official manual for accurate parameter definitions and valid ranges.
+        
+        For definitive parameter specifications, consult:
+        - Official SIMIND manual at simind.blogg.lu.se
+        - "The SIMIND Monte Carlo Program" chapter in Monte Carlo Calculations 
+          in Nuclear Medicine (CRC Press, 2012)
+        """
+        descriptions = {
+            # Source parameters
+            "photon_energy": "Photon energy in keV (e.g., 140 for 99mTc, 208 for 177Lu)",
+            "source_half_length": "Source half-length in cm",
+            "source_half_width": "Source half-width in cm", 
+            "source_half_height": "Source half-height in cm",
+            "source_type": "Source type code (0=sphere, 1=cylinder, etc.) - check SIMIND manual",
+            "shift_source_x": "Shift of source in x-direction (cm)",
+            "shift_source_y": "Shift of source in y-direction (cm)",
+            "shift_source_z": "Shift of source in z-direction (cm)",
+            "photon_direction": "Photon direction code (2=isotropic typical)",
+            "emitted_photons_per_decay": "Number of photons emitted per decay",
+            "source_activity": "Source activity in MBq",
+            "number_photon_histories": "Number of photon histories to simulate (10^6 typical minimum)",
+            "matrix_size_source_map_i": "Matrix size for source map (i-direction) - 128x128 standard",
+            "matrix_size_source_map_j": "Matrix size for source map (j-direction) - 128x128 standard",
+            
+            # Phantom parameters
+            "phantom_half_length": "Phantom half-length in cm",
+            "phantom_half_width": "Phantom half-width in cm",
+            "phantom_half_height": "Phantom half-height in cm",
+            "phantom_type": "Phantom type code",
+            "pixel_size_density_images": "Pixel size for density images (cm)",
+            "orientation_density_images": "Orientation of density images",
+            "first_image_density_images": "First image number for density images",
+            "number_density_images": "Number of density images",
+            "density_limit_border": "Density limit at border",
+            "shift_density_images_x": "Shift of density images in x-direction (cm)",
+            "shift_density_images_y": "Shift of density images in y-direction (cm)",
+            "shift_density_images_z": "Shift of density images in z-direction (cm)",
+            "density_threshold_soft_bone": "Density threshold for soft bone",
+            "code_definitions_zubal_phantom": "Code definitions for Zubal phantom",
+            "matrix_size_density_map_i": "Matrix size for density map (i-direction)",
+            "matrix_size_density_map_j": "Matrix size for density map (j-direction)",
+            
+            # Detector/Crystal parameters
+            "crystal_half_length_radius": "Crystal half-length/radius in cm (circular detectors use radius)",
+            "crystal_thickness": "Crystal thickness in cm (NaI(Tl) typical: 0.95cm)",
+            "crystal_half_width": "Crystal half-width in cm (for rectangular crystals)",
+            "height_to_detector_surface": "Height from collimator to detector surface (cm)",
+            "cover_thickness": "Cover thickness in cm (typically Al or Be window)",
+            "energy_resolution": "Energy resolution FWHM (%) at reference energy (9-12% typical at 140keV)",
+            "intrinsic_resolution": "Intrinsic spatial resolution FWHM (cm) (3-4mm typical)",
+            "voltage": "Applied voltage (V) for semiconductor detectors",
+            "mobility_life_electrons": "Mobility-life product for electrons (semiconductor detectors)",
+            "mobility_life_holes": "Mobility-life product for holes (semiconductor detectors)", 
+            "contact_pad_size": "Contact pad size (cm) for pixelated detectors",
+            "anode_element_pitch": "Anode element pitch (cm) for pixelated detectors",
+            "exponential_decay_constant_tau": "Exponential decay constant tau for charge collection",
+            "components_hecht_formula": "Components for Hecht formula (charge collection efficiency)",
+            "energy_resolution_model": "Energy resolution model code (check SIMIND manual for options)",
+            "cloud_mobility": "Cloud mobility parameter for charge collection",
+            "detector_array_size_i": "Detector array size (i-direction) for pixelated systems",
+            "detector_array_size_j": "Detector array size (j-direction) for pixelated systems",
+            
+            # Collimator parameters
+            "hole_size_x": "Collimator hole diameter (cm) - LEHR: 0.111cm, HEGP: 0.24cm",
+            "hole_size_y": "Collimator hole diameter (cm) - should match hole_size_x for round holes",
+            "distance_between_holes_x": "Distance between hole centers (cm) - LEHR: 0.16cm septal thickness",
+            "distance_between_holes_y": "Distance between hole centers (cm) - hexagonal pattern spacing",
+            "shift_center_hole_x": "Shift of center hole in x-direction (cm) for alignment",
+            "shift_center_hole_y": "Shift of center hole in y-direction (cm) for alignment",
+            "collimator_thickness": "Collimator thickness (cm) - LEHR: 2.405cm, HEGP: 5.9cm",
+            "collimator_routine": "Collimator routine code (0=no collimator, 1=parallel holes, etc.)",
+            "hole_shape": "Hole shape code (0=round, 1=square, 2=hexagonal)",
+            "distance_collimator_detector": "Distance from collimator face to detector surface (cm)",
+            "random_collimator_movement": "Random collimator movement parameter (for manufacturing variations)",
+            
+            # Energy analysis parameters
+            "upper_window_threshold": "Upper energy window threshold (keV) - set to -100 for automatic",
+            "lower_window_threshold": "Lower energy window threshold (keV) - set to -100 for automatic",
+            "kev_per_channel": "keV per channel for energy spectrum binning",
+            "energy_spectra_channels": "Number of energy spectra channels (512 typical)",
+            "cutoff_energy_terminate_photon_history": "Cutoff energy to terminate photon history (keV)",
+            
+            # SPECT imaging parameters
+            "pixel_size_simulated_image": "Pixel size for simulated images (cm) - affects resolution vs FOV",
+            "spect_no_projections": "Number of SPECT projections (64, 120, 128 typical)",
+            "spect_rotation": "SPECT rotation parameter (2=360° typical)",
+            "spect_starting_angle": "SPECT starting angle (degrees) - 0° = anterior",
+            "spect_orbital_rotation_fraction": "SPECT orbital rotation fraction (1.0 = full orbit)",
+            "camera_offset_x": "Camera offset in x-direction (cm) from rotation center",
+            "camera_offset_y": "Camera offset in y-direction (cm) from rotation center",
+            "matrix_size_image_i": "Matrix size for images (i-direction) - 128x128 standard",
+            "matrix_size_image_j": "Matrix size for images (j-direction) - 128x128 standard",
+            
+            # Simulation control parameters
+            "step_size_photon_path_simulation": "Step size for photon path simulation (cm) - smaller = more accurate",
+            "type": "General type parameter - check SIMIND manual for current meaning",
+            "scoring_routine": "Scoring routine code - affects output data collection",
+            "csv_file_content": "CSV file content parameter - for custom data output",
+            "backscattering_material_thickness": "Backscattering material thickness (cm)",
+            
+            # Unused parameters - NOTE: May be used in newer SIMIND versions
+            "unused_parameter_1": "Unused parameter 1 - reserved for future use",
+            "unused_parameter_2": "Unused parameter 2 - reserved for future use", 
+            "unused_parameter_3": "Unused parameter 3 - reserved for future use"
+        }
+        return descriptions.get(param_name, "No description available")
+
+    def export_yaml(self, filepath):
+        """
+        Export the configuration to a YAML file.
+        
+        Args:
+            filepath (str): Path for the output YAML file
+        """
+        yaml_dict = self.to_yaml_dict()
+        
+        filepath = Path(filepath)
+        if filepath.suffix != '.yaml':
+            filepath = filepath.with_suffix('.yaml')
+            
+        with open(filepath, 'w') as file:
+            yaml.dump(yaml_dict, file, default_flow_style=False, indent=2, sort_keys=False)
+        
+        print(f"Configuration exported to {filepath}")
+
+    def import_yaml(self, filepath):
+        """
+        Import configuration from a YAML file.
+        
+        Args:
+            filepath (str): Path to the input YAML file
+        """
+        with open(filepath, 'r') as file:
+            yaml_dict = yaml.safe_load(file)
+        
+        # Update comment
+        if "metadata" in yaml_dict and "comment" in yaml_dict["metadata"]:
+            self.comment = yaml_dict["metadata"]["comment"]
+        
+        # Update parameters
+        if "parameters" in yaml_dict:
+            for group_name, group_params in yaml_dict["parameters"].items():
+                for param_name, param_data in group_params.items():
+                    if "index" in param_data and "value" in param_data:
+                        idx = param_data["index"]
+                        value = param_data["value"]
+                        if idx in self.index_dict and idx <= len(self.data):
+                            self.data[idx - 1] = float(value)
+        
+        # Update flags
+        if "simulation_flags" in yaml_dict:
+            flags = list(self.flags)
+            for flag_name, flag_data in yaml_dict["simulation_flags"].items():
+                if "index" in flag_data and "enabled" in flag_data:
+                    idx = flag_data["index"]
+                    enabled = flag_data["enabled"]
+                    if idx in self.flag_dict and idx <= len(flags):
+                        flags[idx - 1] = 'T' if enabled else 'F'
+            self.flags = ''.join(flags)
+        
+        # Update data files
+        if "data_files" in yaml_dict:
+            for file_desc, file_data in yaml_dict["data_files"].items():
+                if "index" in file_data and "filepath" in file_data:
+                    idx = file_data["index"]
+                    filepath = file_data["filepath"]
+                    if idx in self.data_file_dict:
+                        self.data_files[idx] = filepath
+        
+        # Update text variables
+        if "text_variables" in yaml_dict:
+            self.text_variables = yaml_dict["text_variables"]
+        
+        print(f"Configuration imported from {filepath}")
+
+    def validate_parameters(self):
+        """
+        Basic parameter validation based on typical SIMIND ranges.
+        
+        NOTE: This provides basic sanity checks only. Consult official SIMIND 
+        documentation for complete parameter validation rules and constraints.
+        """
+        warnings = []
+        
+        # Energy validation
+        if self.get_value("photon_energy") < 10 or self.get_value("photon_energy") > 500:
+            warnings.append("Photon energy outside typical range (10-500 keV)")
+            
+        # Matrix size validation
+        matrix_i = self.get_value("matrix_size_image_i")
+        matrix_j = self.get_value("matrix_size_image_j")
+        if matrix_i != matrix_j:
+            warnings.append("Non-square matrix sizes may cause issues in some SIMIND versions")
+            
+        # Energy window validation
+        upper_window = self.get_value("upper_window_threshold")
+        lower_window = self.get_value("lower_window_threshold")
+        if upper_window > 0 and lower_window > 0 and lower_window >= upper_window:
+            warnings.append("Lower energy window >= upper energy window")
+            
+        # Collimator validation
+        if self.get_flag("include_collimator"):
+            if self.get_value("collimator_thickness") <= 0:
+                warnings.append("Collimator enabled but thickness <= 0")
+                
+        # Crystal validation
+        if self.get_value("crystal_thickness") <= 0:
+            warnings.append("Crystal thickness <= 0")
+            
+        if warnings:
+            print("Parameter validation warnings:")
+            for warning in warnings:
+                print(f"  - {warning}")
+        else:
+            print("Basic parameter validation passed")
+            
+        return len(warnings) == 0
+
+    def get_simind_version_info(self):
+        """
+        Extract version information from comment or suggest manual verification.
+        """
+        print("SIMIND Version Detection:")
+        print(f"Comment field: '{self.comment}'")
+        print("\nIMPORTANT: Parameter meanings may vary between SIMIND versions.")
+        print("Version 7.0+ introduced significant parameter reorganization.")
+        print("Always verify parameters against your specific SIMIND version's manual.")
+        print("Official documentation: https://simind.blogg.lu.se/")
 
     def print_config(self):
         """

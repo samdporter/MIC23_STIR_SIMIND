@@ -71,118 +71,107 @@ def lower_threshold_image(image, threshold):
     return image
 
 
-def plot_comparison_axial(data_list, axial_slice, base_output_filename, output_dir,
-                          font_size=14, colormap='viridis'):
+def plot_comparison(data_list, slice_index, orientation, base_output_filename, output_dir,
+                    profile_method='index', profile_index=60, font_size=14, colormap='viridis'):
     """
-    Plot axial slice comparisons of the sinograms with an image grid and a line plot.
+    Plot slice comparisons of the sinograms (axial or coronal) with an image grid and a line plot.
 
     Parameters
     ----------
     data_list : list of tuple
-        List of tuples (data_array, title) for each dataset.
-    axial_slice : int
-        Axial slice index to display.
+        List of tuples (data_array, title) for each dataset. data_array is a 3D numpy array.
+    slice_index : int
+        Slice index along the chosen orientation to display (axial or coronal).
+    orientation : str
+        Either 'axial' or 'coronal'. If 'axial', slices are taken as data[:, slice_index, :];
+        if 'coronal', slices are taken as data[:, :, slice_index].
     base_output_filename : str
         Base string to prepend to the output filename.
     output_dir : str
         Directory where the output image is saved.
+    profile_method : {'index', 'sum'}, optional
+        If 'index', extract a single‐row profile at profile_index; 
+        if 'sum', sum across the first axis of the 2D slice to get a profile vs. projection angle.
+    profile_index : int, optional
+        Row index at which to extract a 1D profile when profile_method='index'.
     font_size : int, optional
         Font size for titles and labels.
     colormap : str, optional
         Colormap to use for the images.
     """
-    vmax = max(data[0][axial_slice].max() for data, _ in data_list)
-    fig = plt.figure(figsize=(len(data_list) * 4, 14))
-    gs = GridSpec(3, len(data_list), height_ratios=[2, 0.15, 3])
-    ax_images = [fig.add_subplot(gs[0, i]) for i in range(len(data_list))]
+    # Determine vmax over all datasets for consistent color scaling
+    if orientation == 'axial':
+        vmax = max(data[0][slice_index].max() for data, _ in data_list)
+    elif orientation == 'coronal':
+        vmax = max(data[0][:, :, slice_index].max() for data, _ in data_list)
+    else:
+        raise ValueError("orientation must be 'axial' or 'coronal'")
 
+    n = len(data_list)
+    fig = plt.figure(figsize=(n * 4, 14))
+    gs = GridSpec(3, n, height_ratios=[2, 0.15, 3])
+
+    # Row of images
+    ax_images = [fig.add_subplot(gs[0, i]) for i in range(n)]
     for i, (data, title) in enumerate(data_list):
-        im = ax_images[i].imshow(data[0, axial_slice], vmin=0, vmax=vmax,
-                                 cmap=colormap)
-        ax_images[i].set_title(f"{title}: {np.trunc(data.sum())}",
-                               fontsize=font_size)
+        arr = data[0]
+        if orientation == 'axial':
+            slice_img = arr[slice_index, :, :]
+        else:  # coronal
+            slice_img = arr[:, :, slice_index]
+
+        im = ax_images[i].imshow(slice_img, vmin=0, vmax=vmax, cmap=colormap)
+        total_counts = np.trunc(arr.sum())
+        ax_images[i].set_title(f"{title}: {total_counts}", fontsize=font_size)
         ax_images[i].axis('off')
 
+    # Colorbar spanning entire row
     cbar_ax = fig.add_subplot(gs[1, :])
     fig.colorbar(im, cax=cbar_ax, orientation='horizontal', pad=0.02)
     cbar_ax.set_xlabel('Counts', fontsize=font_size)
     cbar_ax.xaxis.set_label_position('top')
 
+    # Line‐plot row
     ax_line = fig.add_subplot(gs[2, :])
-    colours = plt.cm.viridis(np.linspace(0, 1, len(data_list)))
-    line_width = 2
+    colours = plt.cm.get_cmap(colormap)(np.linspace(0, 1, n))
     for i, (data, title) in enumerate(data_list):
-        # Extract a profile at index 60 from the given axial slice.
-        ax_line.plot(data[0, axial_slice][60], linewidth=line_width,
-                     color=colours[i], linestyle='-', label=title)
+        arr = data[0]
+        if orientation == 'axial':
+            slice_img = arr[slice_index, :, :]
+            # slice_img shape: (num_rows, num_angles)
+        else:
+            slice_img = arr[:, :, slice_index]
+            # slice_img shape: (num_rows, num_angles)
+
+        if profile_method == 'index':
+            profile = slice_img[profile_index, :]
+        elif profile_method == 'sum':
+            profile = slice_img.sum(axis=0)
+        else:
+            raise ValueError("profile_method must be 'index' or 'sum'")
+
+        ax_line.plot(profile, linewidth=2, color=colours[i], linestyle='-',
+                     label=title)
+
     ax_line.set_xlabel('Projection angle', fontsize=font_size)
     ax_line.set_ylabel('Intensity', fontsize=font_size)
     ax_line.set_title('Profile Through Sinogram', fontsize=font_size + 2)
     ax_line.grid(True, which='both', linestyle='--', linewidth=0.5)
     ax_line.legend(loc='upper left', fontsize=font_size)
-    ax_line.set_xlim(0, 128)
+    ax_line.set_xlim(0, slice_img.shape[1])
 
     plt.tight_layout()
-    filename_full = os.path.join(output_dir, "comparison_" + base_output_filename + ".png")
+
+    # Choose filename based on orientation
+    if orientation == 'axial':
+        fname = f"comparison_axial_{profile_method}_{base_output_filename}.png"
+    else:
+        fname = f"comparison_coronal_{profile_method}_{base_output_filename}.png"
+    filename_full = os.path.join(output_dir, fname)
+
     plt.savefig(filename_full)
     plt.close()
 
-
-def plot_comparison_coronal(data_list, coronal_slice, base_output_filename, output_dir,
-                            font_size=14, colormap='viridis'):
-    """
-    Plot coronal slice comparisons of the sinograms with an image grid and a line plot.
-
-    Parameters
-    ----------
-    data_list : list of tuple
-        List of tuples (data_array, title) for each dataset.
-    coronal_slice : int
-        Coronal slice index to display.
-    base_output_filename : str
-        Base string to prepend to the output filename.
-    output_dir : str
-        Directory where the output image is saved.
-    font_size : int, optional
-        Font size for titles and labels.
-    colormap : str, optional
-        Colormap to use for the images.
-    """
-    vmax = max(data[0][:, coronal_slice].max() for data, _ in data_list)
-    fig = plt.figure(figsize=(len(data_list) * 4, 14))
-    gs = GridSpec(3, len(data_list), height_ratios=[2, 0.15, 3])
-    ax_images = [fig.add_subplot(gs[0, i]) for i in range(len(data_list))]
-
-    for i, (data, title) in enumerate(data_list):
-        im = ax_images[i].imshow(data[0, :, coronal_slice], vmin=0, vmax=vmax,
-                                 cmap=colormap)
-        ax_images[i].set_title(f"{title}: {np.trunc(data.sum())}",
-                               fontsize=font_size)
-        ax_images[i].axis('off')
-
-    cbar_ax = fig.add_subplot(gs[1, :])
-    fig.colorbar(im, cax=cbar_ax, orientation='horizontal', pad=0.02)
-    cbar_ax.set_xlabel('Counts', fontsize=font_size)
-    cbar_ax.xaxis.set_label_position('top')
-
-    ax_line = fig.add_subplot(gs[2, :])
-    colours = plt.cm.viridis(np.linspace(0, 1, len(data_list)))
-    line_width = 2
-    for i, (data, title) in enumerate(data_list):
-        # Extract a profile at index 60 from the coronal slice.
-        ax_line.plot(data[0, 60, coronal_slice], linewidth=line_width,
-                     color=colours[i], linestyle='-', label=title)
-    ax_line.set_xlabel('Projection angle', fontsize=font_size)
-    ax_line.set_ylabel('Intensity', fontsize=font_size)
-    ax_line.set_title('Profile Through Sinogram', fontsize=font_size + 2)
-    ax_line.grid(True, which='both', linestyle='--', linewidth=0.5)
-    ax_line.legend(loc='upper left', fontsize=font_size)
-    ax_line.set_xlim(0, 128)
-
-    plt.tight_layout()
-    filename_full = os.path.join(output_dir, "comparison_coronal_" + base_output_filename + ".png")
-    plt.savefig(filename_full)
-    plt.close()
 
 
 def main(args):
@@ -255,14 +244,32 @@ def main(args):
     data_list = [(data, title) for data, title in data_list if data is not None]
 
     # Plot axial slice comparisons.
-    plot_comparison_axial(data_list, args.axial_slice,
-                          base_output_filename, args.output_dir)
-
+    plot_comparison(
+        data_list, args.axial_slice,
+        orientation='axial',
+        base_output_filename=base_output_filename, output_dir=args.output_dir,
+        profile_method='sum', font_size=14, colormap='viridis'
+    )
+    plot_comparison(
+        data_list, args.axial_slice,
+        orientation='axial',
+        base_output_filename=base_output_filename, output_dir=args.output_dir,
+        profile_method='index', profile_index=60, font_size=14, colormap='viridis'
+    )
     # Plot coronal slice comparisons.
-    coronal_slice = 55
-    plot_comparison_coronal(data_list, coronal_slice,
-                            base_output_filename, args.output_dir)
-
+    plot_comparison(
+        data_list, args.axial_slice,
+        orientation='coronal',
+        base_output_filename=base_output_filename, output_dir=args.output_dir,
+        profile_method='sum', font_size=14, colormap='viridis'
+    )
+    plot_comparison(
+        data_list, args.axial_slice,
+        orientation='coronal',
+        base_output_filename=base_output_filename, output_dir=args.output_dir,
+        profile_method='index', profile_index=60, font_size=14, colormap='viridis'
+    )
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
