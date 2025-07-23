@@ -243,9 +243,9 @@ class SimindSimulator:
         with open(orbit_file, 'r') as f:
             for line in f:
                 orbit, _ = line.split()
-                orbits.append(orbit*10)
+                orbits.append(float(orbit) * 10)  # Convert to float first!
         return orbits
-
+        
     def set_template_sinogram(self, template_sinogram):
         """Set the template sinogram for the simulation.
 
@@ -412,7 +412,7 @@ class SimindSimulator:
                         "!image duration (sec)[1]",
                         self.config.get_value(29) * self.time_per_projection
                     )
-                # unfortunatlely, SIMIND .h00 fiels don't always get the radius of rotation right. 
+                # unfortunatlely, SIMIND .h00 fields don't always get the radius of rotation right. 
                 # We'll need to do this manually
                 if self.non_circular_orbit:
                     orbits = self.read_orbit_file(os.path.join(self.output_filepath.with_suffix('.cor')))
