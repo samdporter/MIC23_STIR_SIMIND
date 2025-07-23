@@ -23,7 +23,16 @@ from sirf.STIR import (
     SeparableGaussianImageFilter,
 )
 from sirf.Reg import ImageData as RegImageData
-from totalsegmentator.python_api import totalsegmentator
+
+# Try to import totalsegmentator, but don't fail if it's not available
+TOTALSEGMENTATOR_AVAILABLE = False
+try:
+    from totalsegmentator.python_api import totalsegmentator
+    TOTALSEGMENTATOR_AVAILABLE = True
+    logging.info("totalsegmentator is available")
+except ImportError as e:
+    logging.warning(f"totalsegmentator not available: {e}")
+    logging.info("Will use threshold-based segmentation as fallback")
 
 # Constants (can be parameterized via CLI if desired)
 EROSION_RADIUS = 4       # voxels for spherical erosion
@@ -69,25 +78,122 @@ def align_segmentation(seg_nii):
     return data
 
 
-def mask_and_forward(model, image, attenuation, erosion_radius, threshold_factor, segment=True):
+def threshold_based_segmentation(attenuation, method='adaptive'):
     """
-    Segment body, erode mask, apply to attenuation and forward-project.
-    Returns forward projection and attenuation-masked forward mask.
+    Create body mask from attenuation map using thresholding.
+    More robust than deep learning for attenuation maps.
     """
-    if segment:
-        # Segment body from attenuation
-        tmp_nii = RegImageData(attenuation)
-        tmp_nii.write("__tmp_attn.nii")
+    attn_arr = attenuation.as_array()
+    
+    if method == 'adaptive':
+        # Adaptive threshold based on statistics
+        mean_val = np.mean(attn_arr)
+        std_val = np.std(attn_arr)
+        threshold = mean_val + 0.5 * std_val  # Adjust multiplier as needed
+        
+    elif method == 'otsu':
+        # Otsu's method - automatically find optimal threshold
+        try:
+            from skimage.filters import threshold_otsu
+            threshold = threshold_otsu(attn_arr)
+        except ImportError:
+            logging.warning("scikit-image not available for Otsu method, using adaptive")
+            mean_val = np.mean(attn_arr)
+            std_val = np.std(attn_arr)
+            threshold = mean_val + 0.5 * std_val
+            
+    elif method == 'percentile':
+        # Percentile-based threshold
+        threshold = np.percentile(attn_arr[attn_arr > 0], 25)  # 25th percentile of non-zero values
+        
+    else:  # 'simple'
+        # Simple percentage of maximum
+        threshold = 0.05 * attn_arr.max()
+    
+    # Create binary mask
+    mask = attn_arr > threshold
+    
+    # Remove small objects (noise) if scikit-image is available
+    try:
+        from skimage.morphology import remove_small_objects, remove_small_holes
+        mask = remove_small_objects(mask, min_size=1000)
+        mask = remove_small_holes(mask, area_threshold=1000)
+    except ImportError:
+        logging.warning("scikit-image not available for morphological operations")
+    
+    logging.info(f"Threshold-based segmentation: method={method}, threshold={threshold:.4f}, mask_volume={np.sum(mask)}")
+    
+    return mask
+
+
+def totalsegmentator_segmentation(attenuation):
+    """
+    Use totalsegmentator for body segmentation.
+    Returns mask or raises exception on failure.
+    """
+    if not TOTALSEGMENTATOR_AVAILABLE:
+        raise ImportError("totalsegmentator not available")
+    
+    # Convert to NIfTI format for totalsegmentator
+    tmp_nii = RegImageData(attenuation)
+    tmp_nii.write("__tmp_attn.nii")
+    
+    try:
         seg_nii = nib.load("__tmp_attn.nii")
         seg = totalsegmentator(seg_nii, body_seg=True, task='body')
         mask = align_segmentation(seg)
+        
+        # Clean up temporary file
+        try:
+            os.remove("__tmp_attn.nii")
+        except OSError:
+            pass
+            
+        logging.info(f"totalsegmentator segmentation: mask_volume={np.sum(mask)}")
+        return mask
+        
+    except Exception as e:
+        # Clean up temporary file on error
+        try:
+            os.remove("__tmp_attn.nii")
+        except OSError:
+            pass
+        raise e
 
+
+def mask_and_forward(model, image, attenuation, erosion_radius, threshold_factor, segment=True, seg_method='adaptive', force_threshold=False):
+    """
+    Segment body, erode mask, apply to attenuation and forward-project.
+    Tries totalsegmentator first, falls back to threshold method.
+    Returns forward projection and attenuation-masked forward mask.
+    """
+    if segment:
+        mask = None
+        
+        # Try totalsegmentator first (unless forced to use threshold)
+        if not force_threshold and TOTALSEGMENTATOR_AVAILABLE:
+            try:
+                mask = totalsegmentator_segmentation(attenuation)
+                logging.info("Successfully used totalsegmentator for body segmentation")
+            except Exception as e:
+                logging.warning(f"totalsegmentator failed: {e}")
+                logging.info("Falling back to threshold-based segmentation")
+        
+        # Fall back to threshold method if totalsegmentator failed or not available
+        if mask is None:
+            mask = threshold_based_segmentation(attenuation, method=seg_method)
+            logging.info(f"Using threshold-based segmentation ({seg_method} method)")
+            
     else:
+        # Simple threshold when segmentation is disabled
         mask = attenuation.as_array() > threshold_factor * attenuation.max()
+        logging.info("Using simple threshold for body mask (segmentation disabled)")
 
     # Erode mask (spherical)
     selem = ball(erosion_radius)
     eroded = erosion(mask, selem)
+    
+    logging.info(f"Mask erosion: original_volume={np.sum(mask)}, eroded_volume={np.sum(eroded)}")
 
     # Apply eroded mask to attenuation
     attn_arr = attenuation.as_array()
@@ -186,6 +292,12 @@ def main():
     parser.add_argument("--no_segment_body", action='store_false',
                         dest='segment_body',
                         help="Disable body segmentation from attenuation.")
+    parser.add_argument("--force_threshold", action='store_true',
+                        help="Force use of threshold-based segmentation (skip totalsegmentator).")
+    parser.add_argument("--segmentation_method", 
+                        choices=['adaptive', 'otsu', 'percentile', 'simple'],
+                        default='adaptive',
+                        help="Method for threshold-based body segmentation (fallback).")
     parser.add_argument(
         "--spect_gauss_fwhm",
         type=float,
@@ -200,6 +312,17 @@ def main():
     help="Tuple of (float, float, bool) for SPECT resolution and use flag (e.g. 0.0923,0.03,True)"
     )
     args = parser.parse_args()
+
+    # Log segmentation method that will be used
+    if args.segment_body:
+        if args.force_threshold:
+            logging.info(f"Forced to use threshold-based segmentation ({args.segmentation_method})")
+        elif TOTALSEGMENTATOR_AVAILABLE:
+            logging.info(f"Will try totalsegmentator first, fallback to {args.segmentation_method}")
+        else:
+            logging.info(f"totalsegmentator not available, using {args.segmentation_method}")
+    else:
+        logging.info("Body segmentation disabled")
 
     input_dir = Path(args.input_dir)
     # gather files
@@ -241,7 +364,9 @@ def main():
                 spect_data["attenuation"],
                 EROSION_RADIUS,
                 THRESHOLD_FACTOR,
-                segment=args.segment_body
+                segment=args.segment_body,
+                seg_method=args.segmentation_method,
+                force_threshold=args.force_threshold
             )
 
         # compute counts for scaling
