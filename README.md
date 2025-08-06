@@ -1,3 +1,6 @@
+## This code is deprecated and no longer in use. Please see [SIRF SIMIND CONNECTION](https://github.com/samdporter/STIR-SIMIND-Connection) for a for a more complete and documented package using [SIRF](https://github.com/SyneRBI/SIRF). It can also be installed using pip.
+
+
 # SIRF-SIMIND Connection
 
 STIR user group meeting code that is slowly morphing into a more complete package. \
